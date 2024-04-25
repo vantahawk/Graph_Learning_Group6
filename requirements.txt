@@ -1,0 +1,8 @@
+aenum
+argparse
+pandas
+networkx
+numba
+numpy
+scikit-learn
+scipy
