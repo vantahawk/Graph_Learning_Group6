@@ -1,6 +1,7 @@
 aenum
 argparse
 pandas
+matplotlib
 networkx
 numba
 numpy
