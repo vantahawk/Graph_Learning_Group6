@@ -5,7 +5,11 @@ import inspect
 from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
-from typing import NewType, List, overload, Tuple
+from typing import NewType, List, overload, Tuple, Literal, Dict
+import scipy.sparse as sparseFun
+import scipy.stats
+import xxhash
+import scipy
 
 KerneledGraph = NewType("KerneledGraph", np.ndarray)
 """A type hint for the kerneled graph, which is a numpy array."""
@@ -50,6 +54,32 @@ class BaseKernel():
                 return
         
         plt.show()
+
+
+def new_color_hash(coloring:np.ndarray, graphs:List[nx.Graph])->np.ndarray:
+    """Hash the colors of the nodes in the graph. with info abou the current coloring and the adjacent nodes' colors.
+    
+    ### Args:
+    coloring (np.ndarray): The current coloring of the nodes of multiple graphs. Dimensions: n_graphs x n_nodes.
+    graphs (List[nx.Graph]): The graphs to hash the colors for.
+    
+    ### Returns:
+    np.ndarray: The hashed colors of the nodes. Dimensions: n_graphs x n_nodes.
+    """
+    new_coloring = np.zeros_like(coloring)
+    #
+    hash = xxhash.xxh32(seed=hash(str(coloring)))
+
+    for i, graph in enumerate(graphs):
+        nonzero_adj:Tuple[np.ndarray, np.ndarray] = nx.adjacency_matrix(graph).nonzero()
+
+        for node in enumerate(graph.nodes.keys()):
+            neighbors:np.ndarray = nonzero_adj[1,np.where(nonzero_adj[0]==node)[0]]
+
+            hash.update(coloring[i, [node]+neighbors.tolist()])
+            new_coloring[i, node] = hash.intdigest()
+
+    return new_coloring
 
 @overload
 def test_isomorphism(ref_graph:nx.Graph, test_graph:nx.Graph)->bool:
@@ -106,19 +136,115 @@ def test_isomorphism(ref:nx.Graph|List[nx.Graph], test:nx.Graph|List[nx.Graph])-
         testList = test
     
     #now do the weisfeiler leman isomorphism test with color refinement
-    def color_refinement(graphs:List[nx.Graph])->np.ndarray:
+    @overload
+    def color_refinement(graphs:List[nx.Graph], useLabels:bool=False, n_iterations:int=-1, returnAllIterations:Literal[False]=False)->sparseFun.csc_array:
         """The color refinement algorithm for isomorphism testing.
         
         ### Args:
             graphs (List[nx.Graph]): The graphs to test for isomorphism.
+            useLabels (bool): Whether to distinguish between nodes based on node-labels.
+            n_iterations (int): How many iterations to perform, if negative until the refinement is stable. Currently only positive values are supported.
+            returnAllIterations==False:  Whether to return all iterations. Return only the last iteration
             
         ### Returns:
-            np.ndarray: The distributions of colors for each graph.
+            scipy.sparse.csr_array: The distributions of colors for each graph. dimensions: n_graphs x n_bins (histogram)
         """
-        #TODO implement the color refinement algorithm
+
         pass
 
-    ref_colors, test_colors = np.split(color_refinement(refList+testList), [len(refList)])
+    @overload
+    def color_refinement(graphs:List[nx.Graph], useLabels:bool=False, n_iterations:int=-1, returnAllIterations:Literal[True]=True)->List[sparseFun.csr_array]:
+        """The color refinement algorithm for isomorphism testing.
+        
+        ### Args:
+            graphs (List[nx.Graph]): The graphs to test for isomorphism.
+            useLabels (bool): Whether to distinguish between nodes based on node-labels.
+            n_iterations (int): How many iterations to perform, if negative until the refinement is stable. Currently only positive values are supported.
+            returnAllIterations==True:  Whether to return all iterations. Uses a list of sparse arrays.
+            
+        ### Returns:
+            List[scipy.sparse.csr_array]: The distributions of colors for each graph. dimensions: (n_iterations x) n_graphs x n_bins (histogram)
+        """
+        pass
+
+    def color_refinement(graphs:List[nx.Graph], useLabels:bool=False, n_iterations:int=-1, returnAllIterations:bool=False)->List[sparseFun.csc_array] | sparseFun.csc_array:
+
+        coloring_stable:bool=False
+        iteration:int = 0
+        #init the colorings with 5 iterations, if we need more, we will realloc later
+        #the colorings holds the color for each node, we later aggregate into sparse histogram representation
+        colorings:np.ndarray = np.ones((5, len(graphs), max(graph.number_of_nodes() for graph in graphs)))
+        if useLabels:
+            for i, graph in enumerate(graphs):
+                colorings[0][i] = np.array([
+                    nv for nv in dict(
+                        graph.nodes(data="label")
+                    ).values()
+                ])
+        while(not coloring_stable or (n_iterations>0 and iteration < n_iterations)):
+            colorings[iteration+1] = new_color_hash(colorings[iteration], graphs)
+            iteration += 1
+
+            #check if the coloring is stable
+            #try to map the colors to the previous iteration
+            #if the mapping is bijective, the coloring is stable
+            #TODO implement the stable coloring check
+            if n_iterations < 0:
+                raise NotImplementedError("The stable coloring check is not implemented yet.")
+
+        def collectColoring(colorings:np.ndarray)->sparseFun.csr_array:
+            """Collect the coloring into a sparse histogram representation.
+            
+            Args: 
+                colorings (np.ndarray): The coloring of the nodes. Dimensions: n_graphs x n_nodes
+                
+            Returns:
+                sparseFun.csr_array: The sparse histogram of the colors. Dimensions: n_graphs x n_bins (histogram)"""
+            #condense the colorings into a non-sparse numpy histogram first, then spread it into a sparse scipy array
+            graph_mappings:List[Dict[int, int]] = [
+                {color:i for i, color in enumerate(np.unique(colorings[c]).tolist())
+                } for c in range(colorings.shape[0])
+            ] #mapping per graph because we need them later to uncondense the histograms
+            mapping = Dict[int, int] = {color:i for i, color in enumerate(np.unique(colorings).tolist())
+            }#general mapping for all graphs to condense the colorings
+            colorings = np.vectorize(mapping.get)(colorings)
+            #compute the histogram for each graph from the now condensed colorings
+            dense_histograms:List[np.ndarray] = [
+                np.histogram(
+                    colorings[c],
+                    bins=np.arange(np.max(colorings[c])+1), 
+                    density=False#
+                )[0] 
+                for c in range(colorings.shape[0])
+            ] 
+            #REDO: maybe we can use the dense colorings directly, instead of the sparse histograms, because we just throw it into the hash function again. thus is is not necessary to uncondense it.
+
+            data:np.ndarray = np.concatenate(dense_histograms, axis=0)
+            rows:np.ndarray = np.concatenate([
+                np.full(
+                    shape=dense_histograms[i].shape, 
+                    fill_value=i
+                ) \
+                for i in range(len(dense_histograms))
+            ], axis=0)
+            #the columns are the bins of the histograms, these are uncondensed by the mapping
+            cols:np.ndarray = np.concatenate([
+                np.array(list(graph_mappings[i].keys())) \
+                for i in range(len(dense_histograms))
+            ], axis=0)
+
+            return sparseFun.csr_array(
+                (data, (rows, cols)), shape=(colorings.shape[0], max(mapping.keys())+1)
+            )
+
+
+        if returnAllIterations:
+            return [collectColoring(coloring) for coloring in colorings[:iteration]]#usually == n_iterations
+        else:
+            return collectColoring(colorings[iteration])
+
+    colors = color_refinement(refList+testList, n_iterations=5)
+    ref_colors, test_colors = colors[:len(refList)], colors[len(refList):]
     
     #now compare the color distributions
     isomorphic = np.zeros((len(refList), len(testList)), dtype=bool)

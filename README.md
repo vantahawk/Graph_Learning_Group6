@@ -4,13 +4,17 @@
 Use Python 3.12, other versions have not been tested and are thus not necessarily working.
 
 Install the requirements either in a conda environment or in a virtualenv. The latter can be done like this:
+
+---
+BASH
 ```bash 
 #ON LINUX
 .../group6$ python -m venv venv
 .../group6$ venv/bin/activate
 .../group6$ python -m pip install -r requirements.txt
 ```
-
+---
+BATCH/CMDLine
 ```batch 
 ::ON WINDOWS cmdline, NOT powershell
 ...\group6> python -m venv venv
