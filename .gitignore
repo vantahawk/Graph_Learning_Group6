@@ -2,3 +2,4 @@
 /venv/
 /pdfs/
 *.pdf
+.DS_Store
