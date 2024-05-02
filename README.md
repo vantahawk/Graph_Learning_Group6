@@ -38,12 +38,15 @@ Default parameters:
 - for WL:           
 
 Results for Ex.4:
+
 Mean ± Standard Deviation of Accuracy scores (rounded in %) for 10-fold Cross-validation:
 
 Kernel ↓ | Dataset →    DD              ENZYMES         NCI1
 
 Closed Walk             75.72±0.03      21.0±0.32       63.77±0.1
+
 Graphlet
+
 WL
 
 ---
