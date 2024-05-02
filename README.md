@@ -25,3 +25,20 @@ BATCH/CMDLine
 
 ## How to run
 \#TODO fill this when the code is finished
+To run code for Ex.4:
+```batch
+::ON WINDOWS cmdline
+...\group6> python -m svm_main
+```
+
+Default parameters:
+- for closed walk:  max_length = 20
+- for graphlets:    
+- for WL:           
+
+Results for Ex.4:
+Mean ± Standard Deviation of Accuracy scores (rounded in %) for 10-fold Cross-validation:
+
+Kernel ↓ | Dataset →    DD              ENZYMES         NCI1
+
+Closed Walk             75.72±0.03      21.0±0.32       63.77±0.1
