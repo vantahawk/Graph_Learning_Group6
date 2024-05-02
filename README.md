@@ -42,11 +42,11 @@ Results for Ex.4:
 Mean ± Standard Deviation of Accuracy scores (rounded in %) for 10-fold Cross-validation:
 
 Kernel ↓ , Dataset → | DD | ENZYMES | NCI1
---- |
+| :---: | :---: | :---: | :---: 
 Closed Walk | 75.72±0.03 | 21.0±0.32 | 63.77±0.1
---- |
+| :---: | :---: | :---: | :---: 
 Graphlet |  |  | 
---- |
+| :---: | :---: | :---: | :---: 
 WL |  |  | 
 
 ---
@@ -58,6 +58,7 @@ Observation:
 all used graphs are undirected, unweighted & loopless <=> all adjacency matrices are symmetric, binary & have zero-diagonal!
 
 => may use eigenvalue solution for symmetric/hermitian matrices (eigvalsh/eigsh)
+
 
 
 Idea:
@@ -77,6 +78,7 @@ computing l-powers of eigenvalues up to L: O((L-1)*n) elem. op.s
 => potential speed up by factor n^2 (excluding eigenproblem solving, which itself likely scales with some power of n)!
 
 
+
 Computation (using eigvalsh):
 
 takes noticably longer for dataset DD, still manageable (~45s) for max_length <= ~20, thus we chose max_length = 20 as default
@@ -88,7 +90,9 @@ for ENZYMES: overflow at max_length >= ~400
 for NCI1: overflow at max_length >= ~600
 
 
+
 Ex.2:
+
 
 
 Ex.3:
