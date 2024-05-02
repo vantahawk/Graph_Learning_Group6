@@ -20,19 +20,21 @@ from psutil import cpu_count, virtual_memory
 from Sheet1.David.exercise1.algeb_closed_walk import algeb_closed_walk_kernel # David's closed walk
 
 # Ahmet:
-#from Sheet1.Ahmet.exercise1.main import closed_walk_kernel # Ahmet's closed walk: may need to add default max_length
-#from Sheet1.Ahmet.exercise2.main import sample_and_build_graphlets # Ahmet's graphlet: need to leave out text output for SVM-result to show up as intended
-#import Sheet1.Ahmet.exercise3.main as ahmetWL # Ahmet's WL
+#from Sheet1.Ahmet.exercise1.main import closed_walk_kernel # Ahmet's closed walk
+from Sheet1.Ahmet.exercise2.main import sample_and_build_graphlets # Ahmet's graphlet
+import Sheet1.Ahmet.exercise3.main as ahmetWL # Ahmet's WL
 
 # Benedict:
 
 
 # add/choose names of kernel functions accordingly:
 kernels = {'Closed Walk': algeb_closed_walk_kernel #closed_walk_kernel
-           #, 'Graphlet': sample_and_build_graphlets
-           #, 'WL\t': ahmetWL.weisfeiler_lehman_graph_kernel
+           , 'Graphlet': sample_and_build_graphlets
+           , 'WL\t': ahmetWL.weisfeiler_lehman_graph_kernel
           }
 
+#Note: svm_main does not execute Ahmet's graphlet & WL kernel properly, likely due to issue with svm_main
+#output table still shows if only lines for David's or Ahmet's closed walk kernel are chosen
 ###
 
 
