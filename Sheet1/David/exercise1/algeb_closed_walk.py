@@ -27,7 +27,7 @@ from scipy.linalg import eigvalsh
 def algeb_closed_walk_kernel(graph: nx.Graph, max_length: int = 20) -> np.ndarray:
     # eigenvalues of adjacency matrix; choose:
     # sparse method:
-    #eigenvalues = eigsh(csr_matrix.asfptype(adjacency_matrix(graph)), k=nx.number_of_nodes(Graph)-1, which='LM', maxiter=None, tol=0, return_eigenvectors=False, mode='normal')
+    #eigenvalues = eigsh(csr_matrix.asfptype(adjacency_matrix(graph)), k=nx.number_of_nodes(graph)-1, which='LM', maxiter=None, tol=0, return_eigenvectors=False, mode='normal')
     # or dense method:
     eigenvalues = eigvalsh(adjacency_matrix(graph).todense(), overwrite_a=False, check_finite=True, subset_by_index=None, driver=None) 
     # seems to use CPU-cores more efficiently than sparse method, also slightly more accurate (based on mean deviation w.r.t. taking l-powers of A directly)
