@@ -89,6 +89,11 @@ Computation (using eigvalsh):
 
 
 
+Comparison:
+- closed walk kernel does not reach mean accuracies as high as in the exercise sheet or the paper, comes close though for dataset DD
+
+
+
 Ex.2:
 
 
