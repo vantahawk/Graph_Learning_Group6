@@ -12,7 +12,7 @@ def sample_and_build_graphlets(graph: nx.Graph, num_samples: int = 1000) -> np.n
     graphlet_counts = np.zeros(34, dtype=int)
 
     for i in range(num_samples):
-        sampled_nodes = np.random.choice(nodes, 5, replace=False)
+        sampled_nodes = np.random.choice(nodes, 5)
         # Make a copy of the subgraph
         subgraph = nx.Graph(graph.subgraph(sampled_nodes))
         subgraph = nx.convert_node_labels_to_integers(
