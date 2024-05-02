@@ -9,7 +9,7 @@
 # => tr(A^l) = tr(U D^l U') = tr(D^l U' U) = tr(D^l) = sum of l-powers of eigenvalues!
 # computing A^l up to L directly: O((L-1)*n^3) elem. op.s
 # computing l-powers of eigenvalues up to L: O((L-1)*n) elem. op.s
-# => potential speed up by factor n^2 !
+# => potential speed up by factor n^2 (excluding eigenproblem solving, itself likely scales with some power of n)!
 
 # Computation (using eigvalsh):
 # takes noticably longer for dataset DD, still manageable (~45s) for max_length <= ~20

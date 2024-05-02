@@ -8,3 +8,9 @@ numpy
 scikit-learn
 scipy
 xxhash
+
+#pickle
+psutil
+
+typing
+#collections
