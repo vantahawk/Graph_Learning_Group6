@@ -4,13 +4,13 @@ from typing import List
 
 
 def initial_coloring(graph: nx.Graph, default_color=0):
-    """Initialize coloring of the graph nodes. Use node labels if available, otherwise use default color."""
+    """Colors the graph nodes by using the provided node labels if available and a default color as fallback if not."""
     return {node: graph.nodes[node].get('label', default_color) for node in graph.nodes}
 
 
 def refine_colors(graph: nx.Graph, current_colors, color_map):
-    """Refine colors based on current colors and neighborhood colors, using a color map to ensure unique integers."""
-    new_colors = {}
+    """Basically the function that is called in the loop. It refines the colors of the nodes based on the current colors and the neighboring nodes' colors."""
+    new_colors = {}  # of form {node: color}
     next_color = max(color_map.values(), default=0) + 1  # Get next color code
     for node in graph.nodes:
         neighbors = graph.neighbors(node)
@@ -22,14 +22,9 @@ def refine_colors(graph: nx.Graph, current_colors, color_map):
         if color_key not in color_map:
             color_map[color_key] = next_color
             next_color += 1
+        # Assign the new color to the node
         new_colors[node] = color_map[color_key]
     return new_colors
-
-
-def compute_histogram(colors: dict):
-    """Compute the histogram of the colors."""
-    color_count = Counter(colors.values())
-    return color_count
 
 
 def weisfeiler_lehman_graph_kernel(graphs: List[nx.Graph], num_rounds=4):
@@ -45,7 +40,7 @@ def weisfeiler_lehman_graph_kernel(graphs: List[nx.Graph], num_rounds=4):
                       for graph, colors in zip(graphs, all_colors)]
 
     # Compute histograms
-    histograms = [compute_histogram(colors) for colors in all_colors]
+    histograms = [Counter(colors.values())(colors) for colors in all_colors]
 
     # Normalize histograms by ensuring each histogram has the same features
     all_features = set().union(*[hist.keys() for hist in histograms])

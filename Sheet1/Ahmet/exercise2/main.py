@@ -7,6 +7,8 @@ def sample_and_build_graphlets(graph: nx.Graph, num_samples: int = 1000) -> Tupl
     nodes = np.array(graph.nodes())
     all_graphlets: List[nx.Graph] = []
     # Preallocate with expected size if known, else start small and dynamically resize if necessary.
+    # 34 is the maximum number of unique graphlets for 5 nodes.
+    # But this won't be a problem since the graphlet_counts array will be resized if needed.
     graphlet_counts = np.zeros(34, dtype=int)
 
     for i in range(num_samples):
