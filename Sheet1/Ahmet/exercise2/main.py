@@ -3,7 +3,7 @@ import networkx as nx
 from typing import Tuple, List
 
 
-def sample_and_build_graphlets(graph: nx.Graph, num_samples: int = 1000) -> Tuple[List[nx.Graph], np.ndarray]:
+def sample_and_build_graphlets(graph: nx.Graph, num_samples: int = 1000) -> np.ndarray:
     nodes = np.array(graph.nodes())
     all_graphlets: List[nx.Graph] = []
     # Preallocate with expected size if known, else start small and dynamically resize if necessary.
@@ -34,17 +34,7 @@ def sample_and_build_graphlets(graph: nx.Graph, num_samples: int = 1000) -> Tupl
                 graphlet_counts = np.pad(
                     graphlet_counts, (0, 10), mode='constant')  # Increase size by 10
             graphlet_counts[index] = 1
-            print(f"Sample {i}: New graphlet added as graphlet {index + 1}")
+            # print(f"Sample {i}: New graphlet added as graphlet {index + 1}")
 
     # Trim graphlet_counts to match number of unique graphlets
-    return all_graphlets, graphlet_counts[:len(all_graphlets)]
-
-
-# Example usage:
-# Create a larger example graph
-G = nx.erdos_renyi_graph(10, 0.5)
-
-# Get the feature vector for the graph using the Graphlet Kernel
-graphlets, feature_vector = sample_and_build_graphlets(G)
-print("Number of distinct graphlets found:", len(graphlets))
-print("Feature vector:", feature_vector)
+    return graphlet_counts
