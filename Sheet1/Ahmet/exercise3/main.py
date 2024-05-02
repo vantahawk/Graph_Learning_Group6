@@ -44,7 +44,7 @@ def weisfeiler_lehman_graph_kernel(graph: nx.Graph, num_rounds=4):
 
     # Get the maximum color value and initialize a 1D numpy array with zeros
     max_color = max(histogram.keys())
-    color_histogram = np.zeros(max_color + 1)
+    color_histogram = np.zeros(max_color + 1, dtype=int)
 
     # Fill the histogram values in the 1D numpy array with colors as indices
     for color, count in histogram.items():
