@@ -28,9 +28,9 @@ import Sheet1.Ahmet.exercise3.main as ahmetWL # Ahmet's WL
 
 
 # add/choose names of kernel functions accordingly:
-kernels = {'Closed Walk': algeb_closed_walk_kernel #closed_walk_kernel
-           , 'Graphlet': sample_and_build_graphlets
-           , 'WL\t': ahmetWL.weisfeiler_lehman_graph_kernel
+kernels = {'Closed Walk': algeb_closed_walk_kernel, #closed_walk_kernel
+           'Graphlet': sample_and_build_graphlets,
+           'WL\t': ahmetWL.weisfeiler_lehman_graph_kernel
           }
 
 #Note: svm_main does not execute Ahmet's graphlet & WL kernel properly, likely due to issue with svm_main
