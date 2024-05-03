@@ -52,8 +52,8 @@ Mean ± Standard Deviation of Accuracy scores (rounded in %) for 10-fold Cross-v
 
 | Kernel ↓ , Dataset → | DD         | ENZYMES   | NCI1       |
 | :------------------- | :--------- | :-------- | :--------- |
-| Closed Walk          | 75.72±0.03 | 21.0±0.32 | 63.77±0.1  |
-| Graphlet             | 71.99±0.16 |           | 59.85±0.11 |
+| Closed Walk          | 75.72±1.72 | 21.0±5.64 | 63.77±3.14 |
+| Graphlet             | 73.27±3.79 |           | 60.61±3.43 |
 | WL                   |            |           |            |
 
 ---
