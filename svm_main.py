@@ -28,19 +28,22 @@ import Sheet1.Ahmet.exercise3.main as ahmetWL # Ahmet's WL
 
 
 # add/choose names of kernel functions accordingly:
-kernels = {'Closed Walk': algeb_closed_walk_kernel, #closed_walk_kernel
-           'Graphlet': sample_and_build_graphlets,
-           'WL\t': ahmetWL.weisfeiler_lehman_graph_kernel
-          }
+kernels = {
+    # 'Closed Walk': algeb_closed_walk_kernel, #closed_walk_kernel
+    # 'Graphlet': sample_and_build_graphlets,
+    'WL\t': ahmetWL.weisfeiler_lehman_graph_kernel
+}
 
 #Note: svm_main does not execute Ahmet's graphlet & WL kernel properly, likely due to issue with svm_main
 #output table still shows if only lines for David's or Ahmet's closed walk kernel are chosen
 ###
 
 
-datasets = ['DD', 
-            'ENZYMES',
-            'NCI1']
+datasets = [
+    'DD', 
+    'ENZYMES',
+    'NCI1'
+]
 k = 10 # k-fold cross validation
 
 #SVM-modules:
@@ -75,7 +78,7 @@ for kernel in kernels:
         #pre_dispatch='2*n_jobs', 'n_jobs', None, cpu_count()-1, active_count()-1
         
         mean = np.mean(scores)
-        standard_deviation = np.mean(np.power(scores, 2)) - mean ** 2
+        standard_deviation = np.std(scores)
         
         #print(str(mean*100) + "\u00b1" + str(standard_deviation*100) + "\t", end='')
         print(str(round(mean*100, 2)) + "\u00b1" + str(round(standard_deviation*100, 2)) + "\t", end='') # simple rounding
