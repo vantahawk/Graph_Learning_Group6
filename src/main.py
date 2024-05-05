@@ -84,17 +84,17 @@ def main(kernelname:KernelName, cv:int, save_results:bool, classifier_type:str):
     
     #SVM-modules:
     classifier:SVMClassifier = None
-    search_space:Dict[str, List[Any]] = {}
+    search_space:Dict[str, List[Any]|np.ndarray[float]] = {}
     match classifier_type:
         case "SVC":
             classifier = SVC()
             search_space = {
-                'C': [0.1, 0.2, 0.5, 1, 2, 5, 10],
+                'C': (np.linspace([0.2], [1.0], 9) @ np.array([[0.1, 1.0, 10.0]]).T).flatten(),
                 'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
-                'degree': [2, 3, 4, 5],
+                'degree': np.linspace(2, 8, 7, dtype=int),
                 'gamma': ['scale'],
-                'coef0': [0.0, 0.1, 0.2, 0.5, 1.0],
-                'tol': [0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05],
+                'coef0': np.linspace(0.0, 1.0, 20),
+                'tol':  (np.linspace([0.1], [0.9], 9) @ np.power(0.1, np.linspace([1], [3], 3, dtype=int)).T).flatten(), # 0.1..0.9 in 10 steps * 10^-y | y \in [-4..-1] -> [0.001..0.009, 0.01..0.09, 0.1..0.9, 1..9]
                 'cache_size': [200, 1000, 2000, 5000, 10000],
                 'max_iter': [-1],
                 'decision_function_shape': ['ovr'],
@@ -117,6 +117,7 @@ def main(kernelname:KernelName, cv:int, save_results:bool, classifier_type:str):
             exit(3)
 
         case "NuSVC":
+            print("This classifier is hard to fit. Beware that this may take quite long.")
             classifier = NuSVC()
             search_space = {
                 'nu': [0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7],
@@ -133,9 +134,7 @@ def main(kernelname:KernelName, cv:int, save_results:bool, classifier_type:str):
     
 
     classifier = make_pipeline(StandardScaler(with_mean=kernelname!="wl"), classifier) # use std-normalization of kernel vector data
-    classifier = RandomizedSearchCV(classifier, {(f"{classifier_type.lower()}__"+k):v for k,v in search_space.items()},n_iter=500, n_jobs=psutil.cpu_count(), cv=cv, verbose=0, scoring='accuracy', error_score='raise',  pre_dispatch='2*n_jobs')
-    
-    
+    classifier = RandomizedSearchCV(classifier, {(f"{classifier_type.lower()}__"+k):v for k,v in search_space.items()},n_iter=2000 if kernelname=="SVC" else 200, n_jobs=psutil.cpu_count(), cv=cv, verbose=0, scoring='accuracy', error_score='raise',  pre_dispatch='2*n_jobs')
     outpath:str = f"out/{classifier_type.lower()}_{kernelname}.csv"
     os.makedirs(os.path.dirname(outpath), exist_ok=True)
     outframe:pd.DataFrame = pd.DataFrame(
