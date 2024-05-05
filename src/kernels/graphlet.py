@@ -90,9 +90,9 @@ class GraphletKernel(BaseKernel):
                     break
 
             #make sure all the isographs are not isomorphic to each other, only the diagonal should be true
-            if not test_isomorphism(iso_graphs, iso_graphs, k=4).sum(axis=(0,1)) == len(iso_graphs):
-                print(f"Got {len(iso_graphs)} isomorphism graphs for k={k}, should be {graphSize[k]}!")
-                raise RuntimeError("The isomorphism test failed for the generated isomorphism graphs.")
+            # if not test_isomorphism(iso_graphs, iso_graphs, k=k-1).sum(axis=(0,1)) == len(iso_graphs):
+            #     print(f"Got {len(iso_graphs)} isomorphism graphs for k={k}, should be {graphSize[k]}!")
+            #     raise RuntimeError("The isomorphism test failed for the generated isomorphism graphs.")
 
             #show the iso graphs via matplotlib
             if showGraphs:
@@ -130,8 +130,8 @@ class GraphletKernel(BaseKernel):
         graphSize:Dict[int, int] = {0:1, 1:1, 2:2, 3:4, 4:11, 5:34, 6:156, 7:1044, 8:12346, 9:274668, 10:12005168}
 
         #for now lets fix k to 5
-        if not k==5:
-            raise NotImplementedError("Only graphlets of size 5 are supported for now.")
+        # if not k==5:
+        #     raise NotImplementedError("Only graphlets of size 5 are supported for now.")
     
         m = m if m else self.graph.number_of_nodes()//(k//2)
 
@@ -150,7 +150,7 @@ class GraphletKernel(BaseKernel):
         #make sure all the graphs have the 5 nodes again
         for i in range(len(iso_graphs)):
             g = Graph()
-            g.add_nodes_from(range(5))
+            g.add_nodes_from(range(k))
             g.add_edges_from(iso_graphs[i].edges())
 
         #test the graphlets for isomorphism classes

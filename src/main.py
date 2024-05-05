@@ -35,11 +35,11 @@ defaultKernelArgs:Dict[str, Dict[str, str]] = {
         "max_length" : 20
     },
     "graphlet": {
-        "k":5,
-        "m":1000
+        "k":6,
+        "m":2000
     },
     "wl": {
-        "k":4
+        "k":5
     }
 }
 
@@ -89,9 +89,9 @@ def main(kernelname:KernelName, cv:int, save_results:bool, classifier_type:str):
         case "SVC":
             classifier = SVC()
             search_space = {
-                'C': (np.linspace([0.2], [1.0], 9) @ np.array([[0.1, 1.0, 10.0]]).T).flatten(),
+                'C': (np.linspace([0.2], [1.0], 9) @ np.array([[0.1, 1.0, 10.0]])).flatten(),
                 'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
-                'degree': np.linspace(2, 8, 7, dtype=int),
+                'degree': np.linspace(2, 7, 6, dtype=int),
                 'gamma': ['scale'],
                 'coef0': np.linspace(0.0, 1.0, 20),
                 'tol':  (np.linspace([0.1], [0.9], 9) @ np.power(0.1, np.linspace([1], [3], 3, dtype=int)).T).flatten(), # 0.1..0.9 in 10 steps * 10^-y | y \in [-4..-1] -> [0.001..0.009, 0.01..0.09, 0.1..0.9, 1..9]

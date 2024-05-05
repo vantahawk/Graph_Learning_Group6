@@ -253,7 +253,7 @@ def color_refinement(graphs:List[nx.Graph], useLabels:bool=False, n_iterations:i
             for i, graph in enumerate(graphs):
                 colorings[0][i][:graph.number_of_nodes()] = np.array([
                     int(nv) if nv!=None else -1 for nv in dict(
-                        graph.nodes(data="label")
+                        graph.nodes(data="node_label")
                     ).values()
                 ])
                 #fill nan with zeros
@@ -351,6 +351,8 @@ def color_refinement(graphs:List[nx.Graph], useLabels:bool=False, n_iterations:i
         #     )[0] 
         # #REDO: maybe we can use the dense colorings directly, instead of the sparse histograms, because we just throw it into the hash function again. thus is is not necessary to uncondense it. #APPLIED
 
+        ## ^^^^ outsourced into dense_histogram ^^^^
+
 
         data = dense_histogram(colorings)
         # print(data.shape, len(graphs), max(mapping.keys())+1)
@@ -360,6 +362,8 @@ def color_refinement(graphs:List[nx.Graph], useLabels:bool=False, n_iterations:i
 
         else:#
             return sparseFun.csr_matrix(data)
+
+        #previous back mapping into csr with the inverse mapping, but makes no sense, so might as well not do it.
 
         # rows:np.ndarray = np.concatenate([
         #     np.full(

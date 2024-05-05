@@ -57,11 +57,11 @@ Results for Ex.4:
 
 Mean ± Standard Deviation of Accuracy scores (rounded in %) for 10-fold Cross-validation:
 
-| Kernel ↓ , Dataset → | DD         | ENZYMES   | NCI1       |
-| :------------------- | :--------- | :-------- | :--------- |
-| Closed Walk          | 75.72±0.03 | 21.0±0.32 | 63.77±0.1  |
-| Graphlet             | 71.99±0.16 | 16.67±0.0 | 59.85±0.11 |
-| WL                   | 47.62±2.66 | 19.5±2.36 | 65.60±2.26 |
+| Kernel ↓ , Dataset → | DD         | ENZYMES    | NCI1       |
+| :------------------- | :--------- | :--------- | :--------- |
+| Closed Walk          | 76.23±3.26 | 23.00±5.25 | 64.89±2.84 |
+| Graphlet             | 71.99±0.16 | 16.83±0.50 | 59.85±0.11 |
+| WL                   | 76.23±2.81 | 24.33±4.95 | 68.78±3.21 |
 
 
 Best Params | DD        | Enzymes   | NCI1
@@ -71,15 +71,15 @@ Graphlet    |           |           |
 WL          |           |           |
 ---
 
-Ex.1:
+## Ex.1:
 
-Observation:
+### Observation:
 
 - all used graphs are undirected, unweighted & loopless <=> all adjacency matrices are symmetric, binary & have zero-diagonal!
 
 - => may use eigenvalue solution for symmetric/hermitian matrices (eigvalsh/eigsh)
 
-Idea:
+### Idea:
 
 - adjacency matrix A is binary => number of walks of length l from node i to j are given by (A^l)[i,j]
 
@@ -95,7 +95,7 @@ Idea:
 
 - => potential speed up by factor n^2 (excluding eigenproblem solving, which itself likely scales with some power of n)!
 
-Computation (using eigvalsh):
+### Computation (using eigvalsh):
 
 - takes noticably longer for dataset DD, still manageable (~45s) for max_length <= ~20, thus we chose max_length = 20 as default
 
@@ -105,26 +105,41 @@ Computation (using eigvalsh):
 
 - for NCI1: overflow at max_length >= ~600
 
-Comparison:
+### Comparison:
 
 - closed walk kernel does not reach mean accuracies as high as in the exercise sheet or the paper, comes close though for dataset DD
 
-Ex.2:
+## Some notes to the WL Isomorphism test:
 
-This kernel unfortunately did not scale up well for the datasets, so results took too long. Moreover, scikit threw a numpy error for the ENZYMES datasets regarding the data type in the np.array method, which we could not get our heads around.
+For implementing this as fast as possible, we decided on a fast hash function: xxhash for 32bit hashes. We thus do not need to save hashes in some data structure, the hash function with a given seed is our "datastructure". As seed we use some small hash of an abstraction of the initial graph coloring array (all graphs are in there).
 
-Idea:
+For computing the multiset, we use a histogram representation, that first densifies the coloring before computing the histogram to save memory (even allow the code to run). The histogram in this case only contains the values of the neigbors, but among all possible colors.
 
-Our kernel works by checking for each random graphlet if it is isomorphic to one of the graphlets from the on-the-fly created list of graphlets. If it is, the corresponding entry in the kernel matrix is increased by 1.
+We also use this densified histogram representation for our colorings representation on which the isomorphism test is computed. (This is a complete histogram among all graphs and nodes.)
 
-Observation:
+## Ex.2:
 
-This kernel is very slow, as it has to check for each graphlet if it is isomorphic to one of the graphlets from the list. This is a very expensive operation, as it has to check for each permutation of the nodes of the graphlet if it is isomorphic to the graphlet from the list. We thought of an optimization which promotes the graphlet that has a high number of occurences to the start of the list, so that the kernel has to check for this graphlet first. This way, the kernel can stop checking for isomorphisms as soon as it finds a match. But we did not implement this optimization, as we did not have enough time.
+We precompute the isomorphism classes for the given k, then use these as references to test our graphlets against. As a isomorphism test, we use the wl-test, which is necessary for exercise 3 with $\#iterations = k-1$.
 
-Ex.3:
+The precomputation is pretty fast for k=5, the kernel then takes some mediocre time and the fitting with hpo takes the most time.
 
-This kernel is also too slow to be computed in a reasonable amount of time. We did not get any results for this kernel. It also threw an error in the svm_main.py file, which we could not resolve.
+The results we get do not seem to match the results from the paper. The algorithm however seems to be correct, at least it seems like that.
 
-Idea:
+## Ex.3:
 
-We basically implemented a simplified intuitive version for the kernel that leverages an iteration function `refine_colors` which is also too slow. We did not have enough time to implement the algebraic approach that was mentioned in the exercise sheet.
+For this exercise we could reuse the color refinement but used all the iterations' distributions as discussed in the exercise sheet. This kernel is also pretty fast. 
+
+See the notes on the [WL Test](#some-notes-to-the-wl-isomorphism-test). 
+
+We implemented the node_labels incorrectly thus did get slightly worse results than actually possible, this is fixed now. The results with the initial labels as node labels are not much better:
+
+dataset | w/o node labels       |   with node labels
+------: | :-----------------:   | :----------------:
+DD      | 0.75 ± 0.03           |   0.75 ± 0.03
+Enzymes | 0.30 ± 0.07           |   0.31 ± 0.07
+INC1    | 0.75 ± 0.03           |   0.77 ± 0.03
+
+
+## Some more notes
+
+The wl test first was flawed, it did not return a real multiset for the neighbors, but the accuracy loss was minor. This is now fixed. And already in the results.
