@@ -37,14 +37,21 @@ To run code for Ex.4:
 
 ```batch
 ::ON WINDOWS cmdline
-...\group6> python -m svm_main
+...\group6> python src/main.py --kernel <KERNEL>
 ```
+
+```bash
+# ON LINUX
+.../group6$ python src/main.py --kernel <KERNEL>
+```
+
+For more info check the `--help` page, like so: `python src/main.py --help`
 
 Default parameters:
 
 - for closed walk: max_length = 20
-- for graphlets:
-- for WL:
+- for graphlets: as discussed in the exercise
+- for WL: as in the exercise sheet
 
 Results for Ex.4:
 
@@ -53,9 +60,15 @@ Mean ± Standard Deviation of Accuracy scores (rounded in %) for 10-fold Cross-v
 | Kernel ↓ , Dataset → | DD         | ENZYMES   | NCI1       |
 | :------------------- | :--------- | :-------- | :--------- |
 | Closed Walk          | 75.72±0.03 | 21.0±0.32 | 63.77±0.1  |
-| Graphlet             | 71.99±0.16 |           | 59.85±0.11 |
-| WL                   |            |           |            |
+| Graphlet             | 71.99±0.16 | 16.67±0.0 | 59.85±0.11 |
+| WL                   | 47.62±2.66 | 19.5±2.36 | 65.60±2.26 |
 
+
+Best Params | DD        | Enzymes   | NCI1
+----------- | --------- | --------- | ----------
+Closed Walk |           | C: 5, break_ties: True, cache_size: 200, coef0: 1.0, decision_function_shape: 'ovr', degree: 5, gamma: 'scale', kernel: 'poly', max_iter: -1, tol: 0.0001 <br>-> 25.0±5.16 |     
+Graphlet    |           |           |
+WL          |           |           |
 ---
 
 Ex.1:
