@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 
 from kernels.base import new_color_hash
 from kernels.graphlet import GraphletKernel as GK
+from typing import List
+import os
 
 def test_new_color_hash():
     initial_colors = np.array([[1,1,1,1,1]])
@@ -29,5 +31,17 @@ def test_iso_graph_creation():
     GK.compute_iso_graphs(6, True)
 
 
+def test_node_labels():
+    #get a dataset
+    import pickle as pkl
+    graphs:List[nx.Graph] = None
+    # print(os.getcwd())
+    with open(".\\datasets\\DD\\data.pkl", "rb") as f:
+        graphs = pkl.load(f)
+    
+    first_node_labels = list(dict(graphs[0].nodes(data="node_label")).values())
+    print(first_node_labels[:20])
+
+
 if __name__ == "__main__":
-    test_iso_graph_creation()
+    test_node_labels()
