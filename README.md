@@ -53,7 +53,7 @@ Default parameters:
 - for graphlets: as discussed in the exercise
 - for WL: as in the exercise sheet
 
-Results for Ex.4:
+## Ex.4:
 
 Mean ± Standard Deviation of Accuracy scores (rounded in %) for 10-fold Cross-validation:
 
@@ -69,6 +69,11 @@ Best Params | DD        | Enzymes   | NCI1
 Closed Walk |           | C: 5, break_ties: True, cache_size: 200, coef0: 1.0, decision_function_shape: 'ovr', degree: 5, gamma: 'scale', kernel: 'poly', max_iter: -1, tol: 0.0001 <br>-> 25.0±5.16 |     
 Graphlet    |           |           |
 WL          |           |           |
+
+### Comparison:
+
+Unfortunately none of our kernels reach mean accuracies as high as the ones given in the exercise sheet or the paper. They all at least come close though for dataset DD (>71%).
+
 ---
 
 ## Ex.1:
@@ -93,7 +98,7 @@ WL          |           |           |
 
 - computing l-powers of eigenvalues up to L: O((L-1)\*n) elem. op.s
 
-- => potential speed up by factor n^2 (excluding eigenproblem solving, which itself likely scales with some power of n)!
+- => potential speed up by factor n^2 (excluding eigenproblem solving, which itself likely scales with some power of n, but not L)!
 
 ### Computation (using eigvalsh):
 
@@ -104,18 +109,6 @@ WL          |           |           |
 - for ENZYMES: overflow at max_length >= ~400
 
 - for NCI1: overflow at max_length >= ~600
-
-### Comparison:
-
-- closed walk kernel does not reach mean accuracies as high as in the exercise sheet or the paper, comes close though for dataset DD
-
-## Some notes to the WL Isomorphism test:
-
-For implementing this as fast as possible, we decided on a fast hash function: xxhash for 32bit hashes. We thus do not need to save hashes in some data structure, the hash function with a given seed is our "datastructure". As seed we use some small hash of an abstraction of the initial graph coloring array (all graphs are in there).
-
-For computing the multiset, we use a histogram representation, that first densifies the coloring before computing the histogram to save memory (even allow the code to run). The histogram in this case only contains the values of the neigbors, but among all possible colors.
-
-We also use this densified histogram representation for our colorings representation on which the isomorphism test is computed. (This is a complete histogram among all graphs and nodes.)
 
 ## Ex.2:
 
@@ -139,7 +132,14 @@ DD      | 0.75 ± 0.03           |   0.75 ± 0.03
 Enzymes | 0.30 ± 0.07           |   0.31 ± 0.07
 INC1    | 0.75 ± 0.03           |   0.77 ± 0.03
 
+## Some notes on the WL Isomorphism test:
+
+For implementing this as fast as possible, we decided on a fast hash function: xxhash for 32bit hashes. We thus do not need to save hashes in some data structure, the hash function with a given seed is our "datastructure". As seed we use some small hash of an abstraction of the initial graph coloring array (all graphs are in there).
+
+For computing the multiset, we use a histogram representation, that first densifies the coloring before computing the histogram to save memory (even allow the code to run). The histogram in this case only contains the values of the neigbors, but among all possible colors.
+
+We also use this densified histogram representation for our colorings representation on which the isomorphism test is computed. (This is a complete histogram among all graphs and nodes.)
 
 ## Some more notes
 
-The wl test first was flawed, it did not return a real multiset for the neighbors, but the accuracy loss was minor. This is now fixed. And already in the results.
+The wl test first was flawed, it did not return a real multiset for the neighbors, but the accuracy loss was minor. This is now fixed and already in the results.
