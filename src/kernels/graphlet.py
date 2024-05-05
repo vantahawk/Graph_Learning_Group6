@@ -16,13 +16,13 @@ class GraphletKernel(BaseKernel):
         super().__init__(**kwargs)
 
     @classmethod
-    def compute_iso_graphs(cls, k:int):
+    def compute_iso_graphs(cls, k:int, showGraphs:bool=False):
 
         graphSize:Dict[int, int] = {0:1, 1:1, 2:2, 3:4, 4:11, 5:34, 6:156, 7:1044, 8:12346, 9:274668, 10:12005168}
 
         #for now lets fix k to 5
-        if not k==5:
-            raise NotImplementedError("Only graphlets of size 5 are supported for now.")
+        # if not k==5:
+        #     raise NotImplementedError("Only graphlets of size 5 are supported for now.")
         
         #generate all possible isomorphism graphs given k
         #we don't use labels, so only edges matter=>use edges
@@ -51,16 +51,57 @@ class GraphletKernel(BaseKernel):
 
             #remove duplicates dynamically
             iso_graphs.append(all_graphs_edges.pop(0))
-            for curr_graph in all_graphs_edges:#could be sped up by iterating over a chunk each time. There probably is a probabilitically good number of graphs to test (depending on how many were found yet)
-                if test_isomorphism(iso_graphs, curr_graph, k=4).any():
-                    continue
+            c = 0
+            while c < len(all_graphs_edges):#could be sped up by iterating over a chunk each time. There probably is a probabilitically good number of graphs to test (depending on how many were found yet)
+                num_graphs = max(1, c//10)
+                if num_graphs == 1:
+                    test_graphs:List[Graph] = [all_graphs_edges[c]]
                 else:
-                    iso_graphs.append(curr_graph)
-                    print(f"Found new isograph {len(iso_graphs)}")
+                    test_graphs:List[Graph] = all_graphs_edges[c:c+num_graphs]
+                c += num_graphs
 
-                if len(iso_graphs)==graphSize[k]:
+                test_result = test_isomorphism(iso_graphs, test_graphs, k=k-1, n_jobs=min(psutil.cpu_count(), len(test_graphs)))
+                test_result = test_result.sum(axis=0)
+
+                new_iso_graphs:List[Graph] = []
+
+                for i in range(len(test_result)):
+                    if test_result[i] == 0:
+                        new_iso_graphs.append(test_graphs[i])
+
+                if len(new_iso_graphs) == 0:
+                    continue
+
+                elif len(new_iso_graphs) > 1:
+                    #sort out isomorphic graphs in the new graphs
+                    new_test_result = test_isomorphism(new_iso_graphs, new_iso_graphs, k=k-1, n_jobs=min(psutil.cpu_count(), len(new_iso_graphs)))
+                    selected_graphs:List[int] = []
+                    for i in range(len(new_test_result)):
+                        if new_test_result[i][selected_graphs].sum() == 0:
+                            selected_graphs.append(i)
+                    
+                    iso_graphs.extend([new_iso_graphs[i] for i in selected_graphs])
+                    # print(f"Found {len(iso_graphs)} isomorphism graphs for k={k}.")
+                else:
+                    iso_graphs.append(new_iso_graphs[0])
+                    # print(f"Found {len(iso_graphs)} isomorphism graphs for k={k}.")
+
+                if len(iso_graphs)==graphSize[k]: #saves some compute, especially for larger k
                     break
 
+            #make sure all the isographs are not isomorphic to each other, only the diagonal should be true
+            if not test_isomorphism(iso_graphs, iso_graphs, k=4).sum(axis=(0,1)) == len(iso_graphs):
+                print(f"Got {len(iso_graphs)} isomorphism graphs for k={k}, should be {graphSize[k]}!")
+                raise RuntimeError("The isomorphism test failed for the generated isomorphism graphs.")
+
+            #show the iso graphs via matplotlib
+            if showGraphs:
+                import matplotlib.pyplot as plt
+                import networkx as nx
+                for i in range(len(iso_graphs)):
+                    plt.subplot(np.floor(np.sqrt(len(iso_graphs))), np.ceil(np.sqrt(len(iso_graphs))) ,i+1)
+                    nx.draw(iso_graphs[i], with_labels=True)
+                plt.show()
 
             with open(f"datasets/iso_graphs_{k}.pkl", "wb") as f:
                 pkl.dump(iso_graphs, f)
