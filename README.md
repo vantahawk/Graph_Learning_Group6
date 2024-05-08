@@ -43,20 +43,3 @@ To run code for Ex.4:
 # ON LINUX
 .../group6$ python src/main.py 
 ```
-
-For this exercise we could reuse the color refinement but used all the iterations' distributions as discussed in the exercise sheet. This kernel is also pretty fast. 
-
-See the notes on the [WL Test](#some-notes-to-the-wl-isomorphism-test). 
-
-We implemented the node_labels incorrectly thus did get slightly worse results than actually possible, this is fixed now. The results with the initial labels as node labels are not much better:
-
-dataset | w/o node labels       |   with node labels
-------: | :-----------------:   | :----------------:
-DD      | 0.75 ± 0.03           |   0.75 ± 0.03
-Enzymes | 0.30 ± 0.07           |   0.31 ± 0.07
-INC1    | 0.75 ± 0.03           |   0.77 ± 0.03
-
-
-## Some more notes
-
-The wl test first was flawed, it did not return a real multiset for the neighbors, but the accuracy loss was minor. This is now fixed. And already in the results.
