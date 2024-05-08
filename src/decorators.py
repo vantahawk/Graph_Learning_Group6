@@ -1,9 +1,23 @@
 import inspect
-from typing import Any, Callable, TypeVar, Type, Tuple
+from typing import Any, Callable, TypeVar, Type, Tuple, Dict, Union, List
 import argparse
+from numbers import Number
+
+Argument = Dict[str, Dict[str, Union[Any, str, List[str], Type]]]
+"""One argument may look like this:
+
+```python
+argname={
+    "default":"default_value", 
+    "type":str, 
+    "help":"A descriptive help message, aaaah, HEEEELP!",
+    "flags":["argn", "an"]
+}, 
+```
+"""
 
 RT = TypeVar("RT")
-def parseargs(__description:str="", __help:bool=False, **parseArgs)->Callable[[Callable[[Any], RT]], Callable[[Any], RT]]:
+def parseargs(__description:str="", __help:bool=False, **parseArgs:Argument)->Callable[[Callable[[Any], RT]], Callable[[Any], RT]]:
     """Decorator to set the arguments of a function from system arguments
     Arguments parsed that are not part of the function signature are ignored.
 
@@ -38,7 +52,7 @@ def parseargs(__description:str="", __help:bool=False, **parseArgs)->Callable[[C
     ```
 
     ```python
-    @parseargs(wanted=1)
+    @parseargs(wanted={"default":1})
     def your_function(wanted:int):
         ...
     

@@ -1,6 +1,0 @@
-numpy
-networkx
-sklearn
-scipy
-pickle
-psutil

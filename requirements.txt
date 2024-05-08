@@ -2,15 +2,9 @@ aenum
 argparse
 pandas
 matplotlib
-networkx
 numba
 numpy
-scikit-learn
 scipy
-xxhash
 
-#pickle
 psutil
 tqdm
-typing
-#collections
