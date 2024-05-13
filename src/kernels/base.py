@@ -73,7 +73,7 @@ class BaseKernel():
         
         plt.show()
 
-def dense_histogram(coloring:np.ndarray, num_colors:int|None=None)->np.ndarray:
+def dense_histogram(coloring:np.ndarray, colors:np.ndarray=None)->np.ndarray:
     """Compute the dense histogram of the colors.
     
     Args:
@@ -89,12 +89,14 @@ def dense_histogram(coloring:np.ndarray, num_colors:int|None=None)->np.ndarray:
         single = True
         coloring = coloring.reshape((1, coloring.shape[0]))
 
-    mapping : Dict[int, int] = {color:i for i, color in enumerate(np.unique(coloring).tolist()) }#general mapping for all graphs to condense the colorings
+    mapping : Dict[int, int] = {color:i for i, color in enumerate(np.unique(coloring).tolist() if not colors else colors.tolist()) }#general mapping for all graphs to condense the colorings
         # print(mapping) #debug-print
     # print("Colors before mapping:", coloring) #debug-print    
     coloring = np.vectorize(mapping.get)(coloring) #densified
+    if colors:
+        colors = np.vectorize(mapping.get)(colors)
     # print("Colors after mapping:", coloring) #debug-print
-    num_colors = np.max(coloring)+1 if not num_colors else num_colors
+    num_colors = np.max(coloring)+1 if not colors else np.max(colors)+1
     dense_histograms:np.ndarray = np.zeros((coloring.shape[0], num_colors), dtype=np.int8)
     #compute the histogram for each graph from the now condensed colorings
     for c in range(coloring.shape[0]):
@@ -141,7 +143,7 @@ def new_color_hash(coloring:np.ndarray, graphs:List[nx.Graph], n_jobs=1)->np.nda
             # print(f"Coloring of neighbors of node {n}: {coloring[i, neighbors]}") #debug-print
             # print(f"Histogram of neighbors of node {n}: {dense_histogram(coloring[i, neighbors])}") #debug-print
             hash_input = np.concatenate((
-                dense_histogram(coloring[i, neighbors], num_colors=num_colors),
+                dense_histogram(coloring[i, neighbors], colors=np.unique(coloring[i])),
                 [coloring[i, n]]
             ))
             # print(f"Hashinput for node {n}: {hash_input}") #debug-print
