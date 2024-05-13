@@ -10,10 +10,11 @@ import torch
 import torch.nn.functional as F
 
 from smac import MultiFidelityFacade, Scenario
-from smac.facade import AbstractFacade
 from smac.intensifier.hyperband import Hyperband
 from smac.intensifier.successive_halving import SuccessiveHalving
-from smac.hyperparameters
+from ConfigSpace.hyperparameters import Integer, Float, Categorical
+from ConfigSpace import ConfigurationSpace, Configuration
+from ConfigSpace.conditions import InCondition, LessThanCondition
 
 Shape = Union[Tuple[int], Union[int, int], Union[int, int, int]]
 
