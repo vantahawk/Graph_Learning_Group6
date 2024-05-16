@@ -96,7 +96,10 @@ Mean ± Standard Deviation of Accuracy Scores (rounded in %):
 - issue with ENZYMES still needs to be resolved
 - experimenting more with parameters like number of epochs and batch size, as well as hyperparameters of the optimizer, might yield further improvements for Citeseer & Cora, likely less so for ENZYMES & NCI1 though
 
+---
+
 ### Note on Task Split
 
-Given the sequential dependency of all the exercises (`1 -> 2 -> 3 -> 5` & `1 -> 2 -> 4 -> 6`) each one of us was effectively forced to do most or all of the exercises for themselves. As Benedict's solution (`benedict/sheet2`) seems to perform the best wholistically - having done a hyperparameter search and meeting all the accuracy targets - it made the most sense to simply submit all of his code to the `main` branch. Nonetheless it should be noted that the others also created their own versions. David's version (`david/sheet2`) should also run as intended, however it reaches none of the accuracy targets, especially for ENZYMES. Ahmet's version (`ahmet/sheet2`) includes solutions for Ex.1, 2, 3 & 5.
+Given the sequential dependency of all the exercises (`1 -> 2 -> 3 -> 5` & `1 -> 2 -> 4 -> 6`) each one of us was effectively forced to do most or all of the exercises for themselves. As Benedict's solution (`benedict/sheet2`) seems to perform the best wholistically - having done a hyperparameter optimization and meeting all the accuracy targets - it made the most sense to simply submit all of his code to the `main` branch. Nonetheless it should be noted that the others also created their own versions. David's version (`david/sheet2`) should also run as intended, however it reaches none of the accuracy targets, especially for ENZYMES. Ahmet's version (`ahmet/sheet2`) includes solutions for Ex.1, 2, 3 & 5.
+
 (add/change as needed)
