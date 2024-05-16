@@ -51,7 +51,7 @@ The same info can also be found with the `--help` or `-h` flag like so: `python 
 
 The preprocessing functions (Ex.1) and the single GCN layer class (Ex.2) can be found in files `src/preprocessing.py` and `src/layers.py` resp. The full model classes for graph- (Ex.3) & node-level (Ex.4) can be found in `src/models.py`.
 
-`main.py` also contains all the functions necessary for the transformation, segmentation and formatting of the data.
+`main.py` contains the training and testing routines as well as all the functions for the transformation, segmentation and formatting of the data.
 
 ## Ex. 5 & 6
 
@@ -59,7 +59,7 @@ The preprocessing functions (Ex.1) and the single GCN layer class (Ex.2) can be 
 
 We used the optimizer 'Adam' and the cross entroy loss function.
 
-- Number of splits for cross-validation (Ex.5) or number of rounds (Ex.6): 10 (as discussed in exercise)
+- Number of splits for cross-validation (Ex.5) or number of rounds (Ex.6): 10 (as determined in exercise)
 - batch size for ENZYMES: 100
 - batch size for NCI1: 100
 - number of epochs for ENZYMES: 20
@@ -69,7 +69,7 @@ We used the optimizer 'Adam' and the cross entroy loss function.
 
 ### Results for Ex. 5 & 6
 
-Mean ± Standard Deviation of Accuracy Scores (rounded in %):
+Mean ± Standard Deviation of Accuracies on test data (rounded in %):
 
 | Dataset | Result       |
 | :------ | :----------- |
