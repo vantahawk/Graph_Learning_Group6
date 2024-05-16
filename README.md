@@ -98,8 +98,8 @@ Mean ± Standard Deviation of Accuracies on test data (rounded in %):
 
 ---
 
-### Note on Task Split
+### Note on Exercise Split
 
-Given the sequential dependency of all the exercises (`1 -> 2 -> 3 -> 5` & `1 -> 2 -> 4 -> 6`) each one of us was effectively forced to do most or all of the exercises for themselves. As Benedict's solution (`benedict/sheet2`) seems to perform the best wholistically - having done a hyperparameter optimization and meeting all the accuracy targets - it made the most sense to simply submit all of his code to the `main` branch. Nonetheless it should be noted that the others also created their own versions. David's version (`david/sheet2`) should also run as intended, however it reaches none of the accuracy targets, especially for ENZYMES. Ahmet's version (`ahmet/sheet2`) includes solutions for Ex.1, 2, 3 & 5.
+Given the largely sequential dependency of all the exercises (`1 -> 2 -> 3 -> 5` & `1 -> 2 -> 4 -> 6`) and given our lack of opportunity to collaborate on everything in real-time, each one of us was practically forced to approach most or all of the exercises for themselves. As Benedict's solution (`benedict/sheet2`) seems to perform the best wholistically - having done a hyperparameter optimization and meeting all the accuracy targets - it made the most sense to simply submit all of his code to the `main` branch. Nonetheless the others' solution should also be noted. David's solution (`david/sheet2`) should also run as intended, however it reaches none of the accuracy targets (see his `README.md` for more details). Ahmet's solution (`ahmet/sheet2`) includes code for Ex.1, 2, 3 & 5.
 
 (add/change as needed)
