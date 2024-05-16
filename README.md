@@ -41,15 +41,17 @@ or
 .../group6$ python main.py
 ```
 
-...runs GCN model training & testing resp. for a number of epochs for all 4 datasets 'ENZYMES', 'NCI1', 'Citeseer' & 'Cora' once in said order on the respective model type, i.e. graph-level (Ex.5) for ENZYMES & NCI1 and nonde-level (Ex.6) for Citeseer & Cora.
+...runs GCN model training & testing resp. for a number of epochs for all 4 datasets 'ENZYMES', 'NCI1', 'Citeseer' & 'Cora' once in said order on the respective model type, i.e. graph-level (Ex.5) for ENZYMES & NCI1 and node-level (Ex.6) for Citeseer & Cora.
 
-Alternatively specific datasets can be chosen by setting the resp. keywords 'enzymes', 'nci1', 'citeseer' or 'cora' as positional arguments. For example to run NCI1 & Cora in said order set:
+Alternatively specific datasets can be chosen by setting the resp. keywords `enzymes`, `nci1`, `citeseer` or `cora` as positional arguments. For example to run NCI1 & Cora in said order set:
 
 `python main.py nci1 cora`
 
 The same info can also be found with the `--help` or `-h` flag like so: `python main.py -h`
 
-The preprocessing functions (Ex.1) and the single GCN layer class (Ex.2) can be found in files `src/preprocessing.py` and `src/layers.py` resp. The full model classes for graph- (Ex.3) & node-level (Ex.4) can be found in `src/models.py`. `main.py` also contains all the functions necessary for the transformation, segmentation and formatting of the data.
+The preprocessing functions (Ex.1) and the single GCN layer class (Ex.2) can be found in files `src/preprocessing.py` and `src/layers.py` resp. The full model classes for graph- (Ex.3) & node-level (Ex.4) can be found in `src/models.py`.
+
+`main.py` also contains all the functions necessary for the transformation, segmentation and formatting of the data.
 
 ## Ex. 5 & 6
 
@@ -60,7 +62,7 @@ We used the optimizer 'Adam' and the cross entroy loss function.
 - Number of splits for cross-validation (Ex.5) or number of rounds (Ex.6): 10 (as discussed in exercise)
 - batch size for ENZYMES: 100
 - batch size for NCI1: 100
-- number of epochs forENZYMES: 20
+- number of epochs for ENZYMES: 20
 - number of epochs for NCI1: 20
 - number of epochs for Citeseer: 150
 - number of epochs for Cora: 150
@@ -69,11 +71,12 @@ We used the optimizer 'Adam' and the cross entroy loss function.
 
 Mean ± Standard Deviation of Accuracy Scores (rounded in %):
 
-| :------ | :------------ |
-|ENZYMES  | 15.17  ± 11.58 |
-|NCI1     | 65.82  ± 5.77 |
-|Citeseer | 67.92  ± 0.98 |
-|Cora     | 67.69  ± 0.62 |
+| Dataset | Result       |
+| :------ | :----------- |
+|ENZYMES  | 15.17 ± 11.58 |
+|NCI1     | 65.82 ± 5.77 |
+|Citeseer | 67.92 ± 0.98 |
+|Cora     | 67.69 ± 0.62 |
 
 ## Discussion
 
