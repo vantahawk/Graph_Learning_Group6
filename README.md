@@ -77,7 +77,7 @@ STD | 0.016 | 0.006 | 0.061 | 0.027
 
 ## Notes
 
-We did split the work initially, but since the work could only really be split into 2 (Node/Graph-level classification), we did it like this, but the entire code comes from Benedict, see the individual branches for the work of the others.
+Given the largely sequential dependency of all the exercises - `1 -> 2 -> 3 -> 5` (graph-level) & `1 -> 2 -> 4 -> 6` (node-level) - and given our lack of opportunity to collaborate on everything in real-time, each one of us was practically forced to approach most or all of the exercises for themselves. As Benedict's solution (`benedict/sheet2`) seems to perform the best for the most part - having done a hyperparameter optimization and meeting at least two of the accuracy targets - it made the most sense to simply submit all of his code to the `main` branch. Nonetheless the others' solution should also be noted. David's solution (`david/sheet2`) should also run as intended, however it reaches none of the accuracy targets (see his `README.md` for more details). Ahmet's solution (`ahmet/sheet2`) includes code for Ex.1, 2, 3 & 5.
 
 We noticed that data normalization helped extremely with results.
 The hpo was probably a bit overkill, but it did improve our results slightly and we never let if fully run, as its really time-consuming, even though its a BOHB implementation, so maybe it could have helped more.
