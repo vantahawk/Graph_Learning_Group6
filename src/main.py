@@ -68,7 +68,7 @@ def main(level:Literal["graph", "node"], device:str, dataset:str, default_hps:bo
                 if not dataset in ["ENZYMES", "NCI1"]:
                     raise ValueError(f"The chosen dataset \"{dataset}\" is neither \"ENZYMES\" nor \"NCI1\". Maybe you wanted to do a node-level classification?")
 
-            print("Training and Evaluating a GraphLevelGCN.")
+            print(f"Training and Evaluating a GraphLevelGCN on dataset {dataset}.")
 
             graphs:List[Graph] = load_graphs_dataset(os.path.join("datasets", dataset, "data.pkl"))
 
@@ -92,20 +92,20 @@ def main(level:Literal["graph", "node"], device:str, dataset:str, default_hps:bo
                         "use_early_stop":0,
                         "es_patience":10,
                         "es_min_delta":0.005,
-                        "grad_clip":2.0
+                        "grad_clip":2.0, #not optimized for
+                        "weight_decay":0 #not optimized for
                     }
                 else:
                     hyperparams = {
                         "epochs":500,
-                        "batch_size":7,
-                        "use_bias": 0,
-                        "use_dropout": 0,
-                        "dropout_prob": 0.012,
-                        "learning_rate": 0.000028241144018,
+                        "batch_size":156,
+                        "use_bias": 1,
+                        "use_dropout": 1,
+                        "dropout_prob": 0.421177208845452,
+                        "learning_rate": 0.002372330072992,
                         "use_early_stop":0,
-                        "es_patience":10,
-                        "es_min_delta":0.005,
-                        "grad_clip":2.0
+                        "grad_clip":3.583576452266625,
+                        "weight_decay":0 #not optimized for
                     }
                 #builds some logic, but actually just a reuse of the smac hp opt logic
                 tmodel = TorchModel(GraphLevelGCN, adjacency_tensors, features, labels, device, layers=5)
@@ -150,7 +150,7 @@ def main(level:Literal["graph", "node"], device:str, dataset:str, default_hps:bo
                     dropout_prob=hyperparams.get("dropout_prob", 0),
                     nonlin="lrelu"
                 )
-                print("Model-type:", type(model)) #debug-print
+                # print("Model-type:", type(model)) #debug-print
 
                 model.train()
                 model.to(device)
@@ -187,8 +187,8 @@ def main(level:Literal["graph", "node"], device:str, dataset:str, default_hps:bo
 
                         # backward pass and sgd step
                         print(f"Train-Loss at E{epoch}/B{batch} -", train_loss)
-                        if train_loss > 10 or torch.isnan(train_loss).any():
-                            print(y_pred, "\nVS\n", y_true, "\n\n")
+                        # if train_loss > 10 or torch.isnan(train_loss).any():
+                        #     # print(y_pred, "\nVS\n", y_true, "\n\n")
                         
                         train_loss.backward()
                         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=hyperparams["grad_clip"], error_if_nonfinite=True)
@@ -227,7 +227,7 @@ def main(level:Literal["graph", "node"], device:str, dataset:str, default_hps:bo
                 if not dataset in ["Citeseer", "Cora"]:
                     raise ValueError(f"The chosen dataset \"{dataset}\" is neither \"Citeseer\" nor \"Cora\". Maybe you wanted to do a graph-level classification?")
                 
-            print("Training and Evaluating a NodeLevelGCN.")
+            print(f"Training and Evaluating a NodeLevelGCN on dataset {dataset}.")
                 
             train_graphs = load_graphs_dataset(os.path.join("datasets", dataset+"_Train", "data.pkl"))
             test_graphs =load_graphs_dataset(os.path.join("datasets", dataset+"_Eval", "data.pkl"))
@@ -248,10 +248,8 @@ def main(level:Literal["graph", "node"], device:str, dataset:str, default_hps:bo
                         "use_bias":0,
                         "use_dropout":1,
                         "dropout_prob":0.400239272036408,
-                        "weight_decay":0.000036919472173,
-                        "use_early_stop":1,
-                        "es_min_delta":0.032974482830919,
-                        "es_patience":3,
+                        "weight_decay":0.356742426499881,
+                        "use_early_stop":0,
                         "epochs":500
                     }
                 else: #Cora
