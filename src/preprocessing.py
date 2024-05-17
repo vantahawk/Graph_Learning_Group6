@@ -52,5 +52,5 @@ def normalized_adjacency_matrix(graphs: Graph|List[Graph])->Tensor:
         As[i] = R
 
     #use float32 as the precision should be high enough and we save compute
-    return Tensor(np.array(As)).to_sparse()
+    return Tensor(np.array(As))
     

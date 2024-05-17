@@ -2,7 +2,7 @@ from torch.nn import Module, Parameter, init as init_params, AvgPool2d
 from torch import Tensor, empty as empty_tensor, bmm as batch_matmul, zeros
 from torch.nn.functional import pad as pad_tensor
 from typing import Literal, Tuple, List
-from .utils import Shape
+from utils import Shape
 
 Padding = Literal['zeroes', 'reflect', 'wrap']
 
@@ -33,12 +33,20 @@ class GeneralGCNLayer(Module):
         Returns a Tensor H'.
         """
         batch_size = H.size(0)
-        #Expand the view to make the tensors virtually larger
-        A = A.unsqueeze(0).expand(batch_size, -1, -1)
-        W = self.W.unsqueeze(0).expand(batch_size, -1, -1)
 
+        #Expand the view to make the tensors virtually larger
+        W = self.W.unsqueeze(0).expand(batch_size, -1, -1)
+        
+        #somehow it breaks if torch does not need to check for the device, idk, seems to do it non-blocking despite it should do it blockingly
+        # print("A", A.get_device(), "H", H.get_device(), "W", W.get_device())
+        A.get_device()
+        H.get_device()
+        
         #compute the KQV product of the tensors
         H_prime:Tensor = batch_matmul(A, H)
+        # print("H'", H_prime.get_device())
+        W.get_device()
+        H_prime.get_device()
         H_prime = batch_matmul(H_prime, W)
 
         if self.use_bias:
@@ -65,8 +73,8 @@ PoolType = Literal["sum"]
 class PoolNodeEmbeddings(Module):
     def __init__(self, type:PoolType|List[PoolType]="sum"):
         """Pools the Node Embeddings along the first axis (1): the nodes -> resulting vector has the length of the inputted embedding. Expects a batch."""
-        self.pool_types:List[PoolType] = type if isinstance(type, list) else [type]
-
+        # self.pool_types:List[PoolType] = type if isinstance(type, list) else [type]
+        super().__init__()
     def forward(self, H:Tensor)->Tensor:
         """Returns a vector where the entries are the summed components over all nodes."""
         # R:Tensor = zeros((H.shape[0], H.shape[2]))

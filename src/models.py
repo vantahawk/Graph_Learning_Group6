@@ -1,11 +1,13 @@
-from torch import Module, Tensor
-from torch.nn import Sequential, Linear,ReLU, functional as F, AvgPool1d, Dropout
-from .layers import GeneralGCNLayer, PoolNodeEmbeddings, Padding
+from torch import Tensor
+from torch.nn import Module, Sequential, Linear,ReLU, functional as F, AvgPool1d, Dropout, ModuleList
+from layers import GeneralGCNLayer, PoolNodeEmbeddings, Padding
 from typing import Literal
+from preprocessing import normalized_adjacency_matrix
+from networkx import Graph
 
 class GraphLevelGCN(Module):
 
-    def __init__(self, input_dim:int, output_dim:int, hidden_dim:int, num_layers:int, use_bias:bool=False, use_dropout:bool=False, dropout_prob:float=0.5):
+    def __init__(self, input_dim:int, output_dim:int, hidden_dim:int, num_layers:int, use_bias:bool=False, use_dropout:bool=False, dropout_prob:float=0.5, nonlin:str="relu"):
         """
         A graph-level classifier model.
         
@@ -18,6 +20,17 @@ class GraphLevelGCN(Module):
             - use_bias (bool): whether to use a bias in the GCN
             - use_dropout (bool): wether to use dropout layers
         """
+        nonlin_dict = {
+            "relu":F.relu,
+            "lrelu":F.leaky_relu_,
+            "leaky":F.leaky_relu_,
+            "learky_relu":F.leaky_relu_,
+            "relu6":F.relu6,
+            "gelu":F.gelu,
+            "rrelu":F.rrelu_,
+            "randrelu":F.rrelu_,
+            "random_rulu":F.rrelu_
+        }
 
         super().__init__()
 
@@ -26,14 +39,13 @@ class GraphLevelGCN(Module):
         self.input_gcn_layer = GeneralGCNLayer(input_dim, hidden_dim, use_bias=use_bias)
         self.output_gcn_layer = GeneralGCNLayer(hidden_dim, hidden_dim, use_bias=use_bias)
 
-        self.hidden_layers = [
+        self.hidden_layers = ModuleList(
             GeneralGCNLayer(hidden_dim, hidden_dim, use_bias=use_bias) for _ in range(num_layers-2)
-        ]
+        )
 
-        if use_dropout:#inject one dropout layer before every hidden layer.
-            num_hid_layers = len(self.hidden_layers)
-            for i in range(num_hid_layers):
-                self.hidden_layers.insert(2*i, Dropout(p=dropout_prob))
+        num_hid_layers = len(self.hidden_layers)
+        for i in range(num_hid_layers):
+            self.hidden_layers.insert(2*i, Dropout(p=dropout_prob if use_dropout else 0))
 
         self.pool_layer = PoolNodeEmbeddings(type="sum")#size is  1 x hidden_dim
 
@@ -47,21 +59,25 @@ class GraphLevelGCN(Module):
             Linear(hidden_dim, output_dim)
         )
 
-    def forward(self, h_0:Tensor):
+        self.nonlin = nonlin_dict.get(nonlin, F.relu)
+
+
+    def forward(self, adj, h_0:Tensor):
         """The forward pass of the graph classification model
 
         Args:
             - h_0 (Tensor): Size batch_size x n_nodes x input_dim
         """
-        h = self.input_gcn_layer(h_0)
-        h = F.relu(h)
+        h = self.input_gcn_layer(adj, h_0)
+        h = self.nonlin(h)
 
-        for i in range(self.num_layers -2):
+        for i in range(0, 2*(self.num_layers-2), 2):
             h = self.hidden_layers[i](h)
-            h = F.relu(h)
+            h = self.hidden_layers[i+1](adj, h)
+            h = self.nonlin(h)
 
-        h = self.output_gcn_layer(h)
-        h = F.relu(h)
+        h = self.output_gcn_layer(adj, h)
+        h = self.nonlin(h)
 
         h = self.pool_layer(h)
         y = self.classifier(h)
@@ -70,7 +86,7 @@ class GraphLevelGCN(Module):
 
 
 class NodeLevelGCN(Module):
-    def __init__(self, input_dim:int, output_dim:int, hidden_dim:int, num_layers:int, use_bias:bool=False, use_dropout:bool=False, dropout_prob:float=0.5):
+    def __init__(self, input_dim:int, output_dim:int, hidden_dim:int, num_layers:int, use_bias:bool=False, use_dropout:bool=False, dropout_prob:float=0.5, nonlin:str="relu"):
         """
         A node-level classifier model.
         
@@ -83,6 +99,17 @@ class NodeLevelGCN(Module):
             - use_dropout (bool): Whether to apply dropout
             - dropout_prob (bool): The dropout probability
         """
+        nonlin_dict = {
+            "relu":F.relu,
+            "lrelu":F.leaky_relu_,
+            "leaky":F.leaky_relu_,
+            "learky_relu":F.leaky_relu_,
+            "relu6":F.relu6,
+            "gelu":F.gelu,
+            "rrelu":F.rrelu_,
+            "randrelu":F.rrelu_,
+            "random_rulu":F.rrelu_
+        }
 
         super().__init__()
 
@@ -91,30 +118,32 @@ class NodeLevelGCN(Module):
         self.input_gcn_layer = GeneralGCNLayer(input_dim, hidden_dim)
         self.output_gcn_layer = GeneralGCNLayer(hidden_dim, hidden_dim)
 
-        self.hidden_layers = [
+        self.hidden_layers = ModuleList(
             GeneralGCNLayer(hidden_dim, hidden_dim) for _ in range(num_layers-2)
-        ]
-        if use_dropout:#inject one dropout layer before every hidden layer.
-            num_hid_layers = len(self.hidden_layers)
-            for i in range(num_hid_layers):
-                self.hidden_layers.insert(2*i, Dropout(p=dropout_prob))
+        )
+        num_hid_layers = len(self.hidden_layers)
+        for i in range(num_hid_layers):
+            self.hidden_layers.insert(2*i, Dropout(p=dropout_prob if use_dropout else 0))
 
         self.classifier_layer = Linear(hidden_dim, output_dim)
+        self.nonlin = nonlin_dict.get(nonlin, F.relu)
 
-    def forward(self, h_0:Tensor):
+    def forward(self, adj:Tensor, h_0:Tensor):
         """The forward pass of the graph classification model
 
         Args:
             - h_0 (Tensor): Size batch_size x n_nodes x input_dim
         """
-        h = self.input_gcn_layer(h_0)
-        h = F.relu(h)
+        h = self.input_gcn_layer(adj, h_0)
+        h = self.nonlin(h)
 
-        for i in range(self.num_layers -2):
+        for i in range(0, 2*(self.num_layers-2), 2):
             h = self.hidden_layers[i](h)
-            h = F.relu(h)
+            h = self.hidden_layers[i+1](adj, h)
+            h = self.nonlin(h)
 
-        h = self.output_gcn_layer(h)
+        h = self.output_gcn_layer(adj, h)
+        h = self.output_gcn_layer(adj, h)
 
         y = self.classifier_layer(h)
 

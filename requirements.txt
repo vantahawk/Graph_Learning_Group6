@@ -13,5 +13,4 @@ scikit-learn
 scipy
 smac
 torchvision
-torch-scatter
 tqdm
