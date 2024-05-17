@@ -96,7 +96,7 @@ def train_eval_resplit(graphs_train: list[nx.Graph], graphs_eval: list[nx.Graph]
 
 def graph_lvl(graphs: list[nx.Graph], dataset: str, device: str, max_n_nodes: int, batch_size: int, n_epochs: int, n_splits: int = 10):
     '''training & testing node-level GCN model on ENZYMES & NCI1 with graph-level GCN'''
-    print("on graph-level GCN...")
+    print("for graph-level GCN...")
     # in case dataset length is not divisable by n_splits
     #length = len(graphs)  # number of graphs in dataset
     #trunc_length = length - (length % n_splits)  # truncated dataset length
@@ -136,7 +136,7 @@ def graph_lvl(graphs: list[nx.Graph], dataset: str, device: str, max_n_nodes: in
 
 def node_lvl(graphs_train: list[nx.Graph], graphs_eval: list[nx.Graph], device: str, max_n_nodes: int, batch_size: int, n_epochs: int, n_rounds: int = 10):
     '''training & testing node-level GCN model on citeseer & cora with node-level GCN'''
-    print("on node-level GCN...")
+    print("for node-level GCN...")
     # prepare data
     X_train, X_eval = train_eval_resplit(graphs_train, graphs_eval, 'node_attributes', max_n_nodes)
     Y_train, Y_eval = train_eval_resplit(graphs_train, graphs_eval, 'node_label', max_n_nodes)
@@ -163,6 +163,7 @@ def node_lvl(graphs_train: list[nx.Graph], graphs_eval: list[nx.Graph], device: 
     return final_results(accuracies)
 
 
+
 def final_results(accuracies: list[float], digits: int = 2):
     '''prints mean +/- standard deviation over accuracies on given test data'''
     mean_accuracy = np.mean(accuracies) * 100
@@ -173,12 +174,13 @@ def final_results(accuracies: list[float], digits: int = 2):
 
 
 def accuracy_sum(y_pred: th.Tensor, y_true: th.Tensor, max_n_nodes: int, length: int, model_type: str) -> float:
-    '''accuracy (in general) = rate of all coincidences between true and predicted y-label values; here: sum up all coincidences [coincidence_tensor] between y_pred & y_true in given batch, for node-lvl: ignore empty node labels (from zero-padding) using [empty_node_guard_tensor]'''
+    '''accuracy (in general) = rate of all coincidences between true and predicted y-label values; here: sum up all coincidences [coincidence_tensor] between y_pred & y_true in given batch,\nfor node-lvl: ignore empty node labels (from zero-padding) using [empty_node_guard_tensor];\nNOTE: there is only one graph in each of the Citeseer & Cora datasets, so it makes no difference afterall'''
     coincidence_tensor = (y_pred.argmax(-1) == y_true.argmax(-1))
+    """
     if model_type == 'node':
         empty_node_guard_tensor = th.tensor([[(y_true[graph][node] != 0).type(th.float).max() for node in range(max_n_nodes)] for graph in range(length)]).type(th.bool)
         coincidence_tensor = (empty_node_guard_tensor & coincidence_tensor)
-
+    """
     return coincidence_tensor.type(th.float).sum().item()
 
 
@@ -242,7 +244,7 @@ def model_trainer(train_loader: DataLoader, eval_loader: DataLoader, input_dim: 
 
         accuracy_eval /= length_eval  # accuracy on test data
         # loss.item() = loss after last batch in epoch
-        print(f"epoch {epoch}: loss {loss.item()}\t\tacc_train(%) {accuracy_train * 100}\t\tacc_eval(%) {accuracy_eval * 100}")
+        print(f"epoch {epoch}: loss: {round(loss.item(), 4)}\t\tacc_train(%): {round(accuracy_train * 100, 4)}\t\tacc_eval(%): {round(accuracy_eval * 100, 4)}")
 
     return accuracy_eval  # return accuracy on test data after last epoch
 
@@ -265,9 +267,9 @@ def main(datasets: list[str]):
     data_prepare = "Preparing dataset "
     # TODO: model parameters: to be tested, chosen..., global vs. dataset-specific?
     # batch sizes for ENZYMES & NCI1
-    batch_size_enzymes, batch_size_nci1 = 100, 100  #60, 137
+    batch_size_enzymes, batch_size_nci1 = 1, 137 #100, 100 #60, 137 #540, 3699
     # number of epochs: find compromise on performance vs. runtime...
-    n_epochs_enzymes, n_epochs_nci1, n_epochs_citeseer, n_epochs_cora = 20, 20, 150, 150 #10, 10
+    n_epochs_enzymes, n_epochs_nci1, n_epochs_citeseer, n_epochs_cora = 50, 50, 150, 150 #10, 10 #50, 50, 150, 150
     #n_epochs_enzymes, n_epochs_nci1, n_epochs_citeseer, n_epochs_cora = 1, 1, 1, 1
 
     end_results = []  # collect means & std.s of accuracies for each dataset
@@ -312,7 +314,7 @@ def main(datasets: list[str]):
     print(f"---\nSummary: Mean \u00b1 Standard Deviation of Accuracy Scores (rounded in %):\n")
 
     for end_result in end_results:
-        print(f"{end_result[0]}\t{end_result[1]}  \u00b1 {end_result[2]}")
+        print(f"{end_result[0]}\t{end_result[1]} \u00b1 {end_result[2]}")
 
     print("---")
 
@@ -325,5 +327,5 @@ if __name__ == "__main__":
     parser.add_argument('datasets', nargs='*', default=['enzymes', 'nci1', 'citeseer', 'cora'],
                         help="list of predefined *datasets* to be called by their resp. names ['enzymes', 'nci1', 'citeseer', 'cora'] (w/o quotes or brackets, separated by spaces only). Runs graph- or node-level evaluation (Ex.5/6) according to each called dataset. If left empty, defaults to calling all of them once in the above order. Names not included will be skipped.")  # positional argument
 
-    args = parser.parse_args()  # parse from command line
+    args = parser.parse_args(['citeseer', 'cora'])  # parse from command line
     main(args.datasets)  # run w/ parsed arguments

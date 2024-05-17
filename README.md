@@ -41,7 +41,7 @@ or
 .../group6$ python main.py
 ```
 
-...runs GCN model training & testing resp. for a number of epochs for all 4 datasets 'ENZYMES', 'NCI1', 'Citeseer' & 'Cora' once in said order on the respective model type, i.e. graph-level (Ex.5) for ENZYMES & NCI1 and node-level (Ex.6) for Citeseer & Cora.
+...runs GCN model training & testing resp. for a number of epochs for all 4 datasets/groups 'ENZYMES', 'NCI1', 'Citeseer' & 'Cora' once in said order on the respective model type, i.e. graph-level (Ex.5) for ENZYMES & NCI1 and node-level (Ex.6) for Citeseer & Cora. Here 'Citeseer' & 'Cora' refers to both of each one's '_Train' & '_Eval' dataset.
 
 Alternatively specific datasets can be chosen by setting the resp. keywords `enzymes`, `nci1`, `citeseer` or `cora` as positional arguments. For example to run NCI1 & Cora in said order set:
 
@@ -60,10 +60,10 @@ The preprocessing functions (Ex.1) and the single GCN layer class (Ex.2) can be 
 We used the optimizer 'Adam' and the cross entroy loss function.
 
 - Number of splits for cross-validation (Ex.5) or number of rounds (Ex.6): 10 (as determined in exercise)
-- batch size for ENZYMES: 100
-- batch size for NCI1: 100
-- number of epochs for ENZYMES: 20
-- number of epochs for NCI1: 20
+- batch size for ENZYMES: 1
+- batch size for NCI1: 137
+- number of epochs for ENZYMES: 50
+- number of epochs for NCI1: 50
 - number of epochs for Citeseer: 150
 - number of epochs for Cora: 150
 
@@ -73,9 +73,9 @@ Mean ± Standard Deviation of Accuracies on test data (rounded in %):
 
 | Dataset | Result       |
 | :------ | :----------- |
-|ENZYMES  | 15.17 ± 11.58 |
-|NCI1     | 65.82 ± 5.77 |
-|Citeseer | 67.92 ± 0.98 |
+|ENZYMES  | 15.5 ± 9.66 |
+|NCI1     | 67.3 ± 6.64 |
+|Citeseer | 68.38 ± 0.51 |
 |Cora     | 67.69 ± 0.62 |
 
 ## Discussion
