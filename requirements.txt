@@ -3,7 +3,7 @@ argparse
 pandas
 protobuf
 psutil
-pytorch
+torch
 pytorch-lightning
 matplotlib
 networkx
@@ -11,5 +11,6 @@ numba
 numpy
 scikit-learn
 scipy
+smac
 torchvision
 tqdm
