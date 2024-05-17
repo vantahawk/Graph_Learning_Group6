@@ -319,7 +319,7 @@ class TorchModel:
                 break
 
         #use the final validation loss as decision factor when comparing configurations
-        print("Solved an smac opt, got val_loss:", val_loss.item())
+        print("Solved an smac opt step, got val_loss:", val_loss.item())
         return val_loss.item()
 
 def opt_with_smac(model:Module, Adj:Tensor, X:np.ndarray, y:np.ndarray, dataset:str, device:str, layers:int, intensifier_type:Literal["SuccessHalving", "Hyperband"]="SuccessiveHalving", Adj_test:Tensor=None, X_test:np.ndarray=None, y_test:np.ndarray=None)->Tuple[Dict[str, Any], TorchModel]:
@@ -447,3 +447,15 @@ def unique_file(basename:str)->str:
     while os.path.exists(actualname):
         actualname = "%s_(%d).%s" % (basename, next(c), ext) if ext!="" else "%s_(%d)" % (basename, next(c))
     return actualname
+
+# def accuracy_sum(y_pred: Tensor, y_true: Tensor, max_n_nodes: int, length: int, model_type: str) -> float:
+#     '''Computes the accuracy while ignoring the node padding, the classifier may behave arbitrarily there.
+    
+#     '''
+#     coincidence_tensor = (y_pred.argmax(-1) == y_true.argmax(-1))
+
+#     empty_node_guard_tensor = torch.tensor([[(y_true[graph][node] != 0).type(torch.float).max() for node in range(max_n_nodes)] for graph in range(length)]).type(torch.bool)
+
+#     coincidence_tensor = (empty_node_guard_tensor & coincidence_tensor)
+
+#     return coincidence_tensor.type(torch.float).sum().item()
