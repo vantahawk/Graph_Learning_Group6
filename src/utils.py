@@ -153,6 +153,7 @@ def make_data(graphs:List[Graph], dataset:str)->Tuple[np.ndarray, np.ndarray]:
 
     return features, labels
 
+#somewhere from stack overflow <- basically the keras implementation of early stopping
 class ValidationLossEarlyStopping:
     def __init__(self, patience=1, min_delta=0.0):
         self.patience = patience  # number of times to allow for no improvement before stopping the execution
