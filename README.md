@@ -92,7 +92,7 @@ Mean ± Standard Deviation of Accuracies on test data (rounded in %):
 ## Conclusion
 
 (outline, in progress)
-- if the issue with NCI1 is indeed due to overfitting, experimenting more with dropout layers might help
+- if the issue with NCI1 is indeed due to overfitting, experimenting more with dropout layers might help (EDIT: has not shown notable improvements until now)
 - issue with ENZYMES still needs to be resolved
 - experimenting more with parameters like number of epochs and batch size, as well as hyperparameters of the optimizer, might yield further improvements for Citeseer & Cora, likely less so for ENZYMES & NCI1 though
 

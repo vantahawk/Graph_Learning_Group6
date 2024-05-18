@@ -60,4 +60,4 @@ def stack_adjacency(graphs: list[nx.Graph], length: int) -> th.Tensor:
 #    return zero_pad(graph_array, [0], length)
 
 
-#if __name__ == "__main__":  # TODO Ex.1 demo
+#if __name__ == "__main__":  # optional: Ex.1 demo

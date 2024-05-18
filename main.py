@@ -94,7 +94,7 @@ def train_eval_resplit(graphs_train: list[nx.Graph], graphs_eval: list[nx.Graph]
 
 
 
-def graph_lvl(graphs: list[nx.Graph], dataset: str, device: str, max_n_nodes: int, batch_size: int, n_epochs: int, n_splits: int = 10):
+def graph_lvl(graphs: list[nx.Graph], dataset: str, device: str, dropout_list: list[int], max_n_nodes: int, batch_size: int, n_epochs: int, n_splits: int = 10):
     '''training & testing node-level GCN model on ENZYMES & NCI1 with graph-level GCN'''
     print("for graph-level GCN...")
     # in case dataset length is not divisable by n_splits
@@ -128,13 +128,13 @@ def graph_lvl(graphs: list[nx.Graph], dataset: str, device: str, max_n_nodes: in
         dataset_eval = TensorDataset(A_eval, X_eval, Y_eval)  # match up test data according to graph
         train_loader = DataLoader(dataset_train, batch_size=batch_size, shuffle=True)  # shuffle & batch up matched training data
         eval_loader = DataLoader(dataset_eval, batch_size=batch_size, shuffle=True)  # shuffle & batch up matched test data
-        accuracies.append(model_trainer(train_loader, eval_loader, input_dim, output_dim, len(Y_train), len(Y_eval), max_n_nodes, n_epochs, 'graph', device))
+        accuracies.append(run_model(train_loader, A_eval, X_eval, Y_eval, input_dim, output_dim, len(Y_train), len(Y_eval), n_epochs, dropout_list, 'graph', device))
 
     return final_results(accuracies)
 
 
 
-def node_lvl(graphs_train: list[nx.Graph], graphs_eval: list[nx.Graph], device: str, max_n_nodes: int, batch_size: int, n_epochs: int, n_rounds: int = 10):
+def node_lvl(graphs_train: list[nx.Graph], graphs_eval: list[nx.Graph], device: str, dropout_list: list[int], max_n_nodes: int, batch_size: int, n_epochs: int, n_rounds: int = 10):
     '''training & testing node-level GCN model on citeseer & cora with node-level GCN'''
     print("for node-level GCN...")
     # prepare data
@@ -158,7 +158,7 @@ def node_lvl(graphs_train: list[nx.Graph], graphs_eval: list[nx.Graph], device: 
         print(f"\nRound {round}:")
         train_loader = DataLoader(dataset_train, batch_size=batch_size, shuffle=True)  # shuffle & batch up matched training data
         eval_loader = DataLoader(dataset_eval, batch_size=batch_size, shuffle=True)  # shuffle & batch up matched test data
-        accuracies.append(model_trainer(train_loader, eval_loader, input_dim, output_dim, n_all_nodes_train, n_all_nodes_eval, max_n_nodes, n_epochs, 'node', device))
+        accuracies.append(run_model(train_loader, A_eval, X_eval, Y_eval, input_dim, output_dim, n_all_nodes_train, n_all_nodes_eval, n_epochs, dropout_list, 'node', device))
 
     return final_results(accuracies)
 
@@ -173,41 +173,37 @@ def final_results(accuracies: list[float], digits: int = 2):
 
 
 
-def accuracy_sum(y_pred: th.Tensor, y_true: th.Tensor, max_n_nodes: int, length: int, model_type: str) -> float:
-    '''accuracy (in general) = rate of all coincidences between true and predicted y-label values; here: sum up all coincidences [coincidence_tensor] between y_pred & y_true in given batch,\nfor node-lvl: ignore empty node labels (from zero-padding) using [empty_node_guard_tensor];\nNOTE: there is only one graph in each of the Citeseer & Cora datasets, so it makes no difference afterall'''
-    coincidence_tensor = (y_pred.argmax(-1) == y_true.argmax(-1))
-    """
-    if model_type == 'node':
-        empty_node_guard_tensor = th.tensor([[(y_true[graph][node] != 0).type(th.float).max() for node in range(max_n_nodes)] for graph in range(length)]).type(th.bool)
-        coincidence_tensor = (empty_node_guard_tensor & coincidence_tensor)
-    """
-    return coincidence_tensor.type(th.float).sum().item()
+def accuracy_sum(y_pred: th.Tensor, y_true: th.Tensor) -> float:
+    '''accuracy (in general) = rate of all coincidences between true and predicted y-label values; here: sum up all coincidences between y_pred & y_true in given batch/dataset'''
+    return (y_pred.argmax(-1) == y_true.argmax(-1)).type(th.float).sum().item()
 
 
 
-def model_trainer(train_loader: DataLoader, eval_loader: DataLoader, input_dim: int, output_dim: int, length_train: int, length_eval: int, max_n_nodes: int, n_epochs: int, model_type: str, device: str) -> float:
+def run_model(train_loader: DataLoader, A_eval: th.Tensor, X_eval: th.Tensor, Y_eval: th.Tensor, input_dim: int, output_dim: int, length_train: int, length_eval: int, n_epochs: int, dropout_list: list[int], model_type: str, device: str) -> float:
     '''create model & optimizer object, send everything necessary to [device], train & test on given data in several epochs per dataset/split, return accuracy on every given test dataset/split'''
-    # construct GCN (object), initialize it & move it to [device], choose number of epochs [n_epochs]
+
+    # construct GCN model (object) of given [model_type] w/ predefined initialization
     if model_type == 'graph':
-        model = GCN_graph(input_dim, output_dim)
+        model = GCN_graph(input_dim, output_dim, dropout_list)
     else:  # elif model_type == 'node':
-        model = GCN_node(input_dim, output_dim)
-    model.to(device)
+        model = GCN_node(input_dim, output_dim, dropout_list)
+
+    model.to(device)  # move model to device
+    model.train()  # switch model to training mode
 
     # construct optimizer
     optimizer = th.optim.Adam(model.parameters(), lr=0.001)  # TODO optimizer parameters to be investigated, tested, chosen...
 
-    # run gradient descent for [n_epochs] epochs
+    # run gradient descent for [n_epochs]
     for epoch in range(n_epochs):
         #training phase
-        model.train()
         accuracy_train = 0  # collect accuracies on training data itself
 
         for a, x, y_true in train_loader:
             # set gradients to zero
             optimizer.zero_grad()
 
-            # move data to device
+            # move training batch to device
             x = x.to(device)
             y_true = y_true.to(device)
             a = a.to(device)
@@ -221,28 +217,23 @@ def model_trainer(train_loader: DataLoader, eval_loader: DataLoader, input_dim: 
             optimizer.step()
 
             # update sum of coincindences on training data
-            accuracy_train += accuracy_sum(y_pred, y_true, max_n_nodes, len(y_true), model_type)
+            accuracy_train += accuracy_sum(y_pred, y_true)
 
         accuracy_train /= length_train  # accuracy on training data
 
         #testing phase
-        model.eval()
-        accuracy_eval = 0  # collect accuracies on test data
+        model.eval()  # switch model to evaluation mode
 
         with th.no_grad():
-            for a, x, y_true in eval_loader:
-                # move data to device
-                x = x.to(device)
-                y_true = y_true.to(device)
-                a = a.to(device)
+            # move test data to device
+            A_eval = A_eval.to(device)
+            X_eval = X_eval.to(device)
+            Y_eval = Y_eval.to(device)
 
-                # evaluate forward fct. to predict y-values
-                y_pred = model(x, a)
+            # evaluate forward fct. to predict y-values
+            Y_pred = model(X_eval, A_eval)
 
-                # update sum of coincindences on test data
-                accuracy_eval += accuracy_sum(y_pred, y_true, max_n_nodes, len(y_true), model_type)
-
-        accuracy_eval /= length_eval  # accuracy on test data
+        accuracy_eval = accuracy_sum(Y_pred, Y_eval) / length_eval  # accuracy on test data
         # loss.item() = loss after last batch in epoch
         print(f"epoch {epoch}: loss: {round(loss.item(), 4)}\t\tacc_train(%): {round(accuracy_train * 100, 4)}\t\tacc_eval(%): {round(accuracy_eval * 100, 4)}")
 
@@ -264,14 +255,23 @@ def main(datasets: list[str]):
     else "cpu")
     print(f"Device: {device}\n")  # which device is being used for torch operations
 
-    data_prepare = "Preparing dataset "
-    # TODO: model parameters: to be tested, chosen..., global vs. dataset-specific?
-    # batch sizes for ENZYMES & NCI1
-    batch_size_enzymes, batch_size_nci1 = 1, 137 #100, 100 #60, 137 #540, 3699
-    # number of epochs: find compromise on performance vs. runtime...
-    n_epochs_enzymes, n_epochs_nci1, n_epochs_citeseer, n_epochs_cora = 50, 50, 150, 150 #10, 10 #50, 50, 150, 150
-    #n_epochs_enzymes, n_epochs_nci1, n_epochs_citeseer, n_epochs_cora = 1, 1, 1, 1
+    # TODO model parameters: to be tested, chosen, global vs. dataset-specific?
 
+    # list of [dropout_list]s, indexing in which GCN single layer to add prior dropout layer for each dataset, inactive for now
+    dropout_table = [[0, 0, 0, 0, 0],  # ENZYMES
+                     [0, 0 ,0 ,0, 0],  # NCI1
+                     [0, 0, 0],  # Citeseer
+                     [0, 0, 0]]  # Cora
+
+    # batch sizes for ENZYMES & NCI1
+    batch_size_enzymes, batch_size_nci1 = 1, 137
+    #1, 137 #100, 100 #60, 137 #540, 3699
+
+    # number of epochs: find compromise on performance vs. runtime...
+    n_epochs_enzymes, n_epochs_nci1, n_epochs_citeseer, n_epochs_cora = 50, 50, 150, 150
+    #10, 10 #20, 20 #50, 50, 150, 150
+
+    data_prepare = "Preparing dataset "
     end_results = []  # collect means & std.s of accuracies for each dataset
 
     for dataset in datasets:
@@ -280,14 +280,14 @@ def main(datasets: list[str]):
             print(data_prepare + "ENZYMES ", end="")
             with open('datasets/ENZYMES/data.pkl', 'rb') as data:
                 graphs = pickle.load(data)
-            acc_mean, acc_std = graph_lvl(graphs, dataset, device, max_node_dim(graphs), batch_size_enzymes, n_epochs_enzymes)
+            acc_mean, acc_std = graph_lvl(graphs, dataset, device, dropout_table[0], max_node_dim(graphs), batch_size_enzymes, n_epochs_enzymes)
             end_results.append([dataset + "\t", acc_mean, acc_std])
 
         elif dataset == 'nci1':
             print(data_prepare + "NCI1 ", end="")
             with open('datasets/NCI1/data.pkl', 'rb') as data:
                 graphs = pickle.load(data)
-            acc_mean, acc_std = graph_lvl(graphs, dataset, device, max_node_dim(graphs), batch_size_nci1, n_epochs_nci1)
+            acc_mean, acc_std = graph_lvl(graphs, dataset, device, dropout_table[1], max_node_dim(graphs), batch_size_nci1, n_epochs_nci1)
             end_results.append([dataset + "\t", acc_mean, acc_std])
 
         elif dataset == 'citeseer':
@@ -296,7 +296,7 @@ def main(datasets: list[str]):
                 graphs_train = pickle.load(data)
             with open('datasets/Citeseer_Eval/data.pkl', 'rb') as data:
                 graphs_eval = pickle.load(data)
-            acc_mean, acc_std = node_lvl(graphs_train, graphs_eval, device, max_node_dim(graphs_train + graphs_eval), 1, n_epochs_citeseer)
+            acc_mean, acc_std = node_lvl(graphs_train, graphs_eval, device, dropout_table[2], max_node_dim(graphs_train + graphs_eval), 1, n_epochs_citeseer)
             end_results.append([dataset, acc_mean, acc_std])
 
         elif dataset == 'cora':
@@ -305,13 +305,13 @@ def main(datasets: list[str]):
                 graphs_train = pickle.load(data)
             with open('datasets/Citeseer_Eval/data.pkl', 'rb') as data:
                 graphs_eval = pickle.load(data)
-            acc_mean, acc_std = node_lvl(graphs_train, graphs_eval, device, max_node_dim(graphs_train + graphs_eval), 1, n_epochs_cora)
+            acc_mean, acc_std = node_lvl(graphs_train, graphs_eval, device, dropout_table[3], max_node_dim(graphs_train + graphs_eval), 1, n_epochs_cora)
             end_results.append([dataset + "\t", acc_mean, acc_std])
 
         else:
             print(f"Invalid dataset name '{dataset}' included in command line argument. Will be skipped.")
 
-    print(f"---\nSummary: Mean \u00b1 Standard Deviation of Accuracy Scores (rounded in %):\n")
+    print(f"---\nSummary:\nMean \u00b1 Standard Deviation of Accuracy Scores (rounded in %):\n")
 
     for end_result in end_results:
         print(f"{end_result[0]}\t{end_result[1]} \u00b1 {end_result[2]}")
@@ -327,5 +327,5 @@ if __name__ == "__main__":
     parser.add_argument('datasets', nargs='*', default=['enzymes', 'nci1', 'citeseer', 'cora'],
                         help="list of predefined *datasets* to be called by their resp. names ['enzymes', 'nci1', 'citeseer', 'cora'] (w/o quotes or brackets, separated by spaces only). Runs graph- or node-level evaluation (Ex.5/6) according to each called dataset. If left empty, defaults to calling all of them once in the above order. Names not included will be skipped.")  # positional argument
 
-    args = parser.parse_args(['citeseer', 'cora'])  # parse from command line
+    args = parser.parse_args()  # parse from command line
     main(args.datasets)  # run w/ parsed arguments
