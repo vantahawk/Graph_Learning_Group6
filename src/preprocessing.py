@@ -1,9 +1,6 @@
 import networkx as nx
-#import typing
-#from networkx import number_of_nodes
 import numpy as np
 import torch as th
-#import argparse
 
 
 
@@ -54,10 +51,3 @@ def zero_pad(array: np.ndarray, axes: list[int], length: int) -> np.ndarray:
 def stack_adjacency(graphs: list[nx.Graph], length: int) -> th.Tensor:
     '''produce norm.ed adj.mat.s of every graph in [graphs], zero-pad them up to [length], and stack along batch axis'''
     return th.tensor(np.array([zero_pad(norm_adjacency(graph) ,[0,1], length) for graph in graphs]))
-
-
-#def zero_pad_node_lvl(graph_array: np.ndarray, length: int) -> np.ndarray:
-#    return zero_pad(graph_array, [0], length)
-
-
-#if __name__ == "__main__":  # optional: Ex.1 demo

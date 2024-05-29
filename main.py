@@ -1,26 +1,17 @@
-"""The entry point of our implementation."""
+'''The entry point of our implementation.'''
 
 # external imports
-#import importlib
-#from typing import *
-#import typing
-#import psutil
-#import os
-#from ast import Tuple
-from networkx import number_of_nodes
-import numpy as np
-import pickle
 import argparse
 import networkx as nx
+import numpy as np
+import pickle
 import torch as th
 from torch.utils.data import TensorDataset, DataLoader
 import torch.nn.functional as F
 
 # internal imports
-#from decorators import parseargs
-from src.preprocessing import max_node_dim, stack_adjacency, zero_pad#, norm_adjacency
+from src.preprocessing import max_node_dim, stack_adjacency, zero_pad
 from src.models import GCN_graph, GCN_node
-#from src.layers import GCN_Layer
 
 
 
@@ -55,6 +46,7 @@ def data_tensor(graphs: list[nx.Graph], label_type: str, max_n_nodes: int) -> th
         one_hot_length = max(graph_labels) - min_label + 1
 
         return th.tensor(np.array([one_hot_encoder(graph.graph['label'] - min_label, one_hot_length) for graph in graphs]))
+        #return th.tensor(np.array([graph.graph['label'] for graph in graphs])).type(th.long)  # try graph labels w/o one-hot encoding...
 
     elif label_type == 'node_label':  # for one-hot encoding node labels
         # collect all available node label values in dataset
@@ -69,15 +61,23 @@ def data_tensor(graphs: list[nx.Graph], label_type: str, max_n_nodes: int) -> th
         min_label = min(node_labels)
         one_hot_length = max(node_labels) - min_label + 1
 
-        return th.tensor(np.array([zero_pad(np.array([one_hot_encoder(node[1]['node_label'] - min_label, one_hot_length) for node in graph.nodes(data=True)]), [0], max_n_nodes) for graph in graphs]))
+        return th.tensor(np.array(
+            [zero_pad(np.array(
+                [one_hot_encoder(node[1]['node_label'] - min_label, one_hot_length)
+                 for node in graph.nodes(data=True)]), [0], max_n_nodes)
+             for graph in graphs]))
 
     else:  # for l2-normalizing node_attributes
-        return th.tensor(np.array([zero_pad(np.array([l2_renorm(node[1]['node_attributes']) for node in graph.nodes(data=True)]), [0], max_n_nodes) for graph in graphs]))
+        return th.tensor(np.array(
+            [zero_pad(np.array(
+                [l2_renorm(node[1]['node_attributes'])
+                 for node in graph.nodes(data=True)]), [0], max_n_nodes)
+             for graph in graphs]))
 
 
 
 def train_eval_split(T: th.Tensor, split: int, split_length: int) -> tuple[th.Tensor, th.Tensor]:
-    '''only for cross-evaluation on enzymes & nci1 (graph-lvl): returns train- & eval-split of given data tensor [T] for given split index [split]'''
+    '''only for cross-validation on enzymes & nci1 (graph-lvl): returns train- & eval-split of given data tensor (T) for given [split] index'''
     T_splits = list(th.split(T, split_length, 0))
     T_eval = T_splits[split]
     del T_splits[split]  # removing eval_split from T_splits yields list of training splits
@@ -89,20 +89,21 @@ def train_eval_split(T: th.Tensor, split: int, split_length: int) -> tuple[th.Te
 def train_eval_resplit(graphs_train: list[nx.Graph], graphs_eval: list[nx.Graph], label_type: str, max_n_nodes: int) -> tuple[th.Tensor, th.Tensor]:
     '''only for citeseer & cora (node-lvl): concatenates resp. train- & eval-dataset (for X and Y separately) to find min. & max 'node_label' values over both, applies data_tensor() to one-hot encode/renormalize them, splits them back again, and returns them'''
     length_train = len(graphs_train)
-    data_join = data_tensor(graphs_train + graphs_eval, label_type, max_n_nodes)
-    return data_join[: length_train], data_join[length_train :]
+    data_join = data_tensor(graphs_train + graphs_eval, label_type, max_n_nodes)  # run data_tensor() on joined train & eval graphs
+    return data_join[: length_train], data_join[length_train :]  # split train & eval graphs again
 
 
 
 def graph_lvl(graphs: list[nx.Graph], dataset: str, device: str, dropout_list: list[int], max_n_nodes: int, batch_size: int, n_epochs: int, n_splits: int = 10):
     '''training & testing node-level GCN model on ENZYMES & NCI1 with graph-level GCN'''
     print("for graph-level GCN...")
+    """
     # in case dataset length is not divisable by n_splits
-    #length = len(graphs)  # number of graphs in dataset
-    #trunc_length = length - (length % n_splits)  # truncated dataset length
-    #split_length = int(trunc_length / n_splits)
-    #graphs = graphs[: trunc_length]  # truncate dataset to have number of graphs be an integer multiple of number of splits [n_splits], necessary for cross evaluation
-
+    length = len(graphs)  # number of graphs in dataset
+    trunc_length = length - (length % n_splits)  # truncated dataset length
+    split_length = int(trunc_length / n_splits)
+    graphs = graphs[: trunc_length]  # truncate dataset to have number of graphs be an integer multiple of number of splits (n_splits), necessary for cross-validation
+    """
     split_length = int(len(graphs) / n_splits)  # both datasets' lengths happen to be divisable by n_splits = 10
 
     if dataset == 'enzymes':
@@ -125,9 +126,9 @@ def graph_lvl(graphs: list[nx.Graph], dataset: str, device: str, dropout_list: l
         Y_train, Y_eval = train_eval_split(Y, split, split_length)
 
         dataset_train = TensorDataset(A_train, X_train, Y_train)  # match up training data according to graph
-        dataset_eval = TensorDataset(A_eval, X_eval, Y_eval)  # match up test data according to graph
+        #dataset_eval = TensorDataset(A_eval, X_eval, Y_eval)  # match up test data according to graph
         train_loader = DataLoader(dataset_train, batch_size=batch_size, shuffle=True)  # shuffle & batch up matched training data
-        eval_loader = DataLoader(dataset_eval, batch_size=batch_size, shuffle=True)  # shuffle & batch up matched test data
+        #eval_loader = DataLoader(dataset_eval, batch_size=batch_size, shuffle=True)  # shuffle & batch up matched test data
         accuracies.append(run_model(train_loader, A_eval, X_eval, Y_eval, input_dim, output_dim, len(Y_train), len(Y_eval), n_epochs, dropout_list, 'graph', device))
 
     return final_results(accuracies)
@@ -145,9 +146,9 @@ def node_lvl(graphs_train: list[nx.Graph], graphs_eval: list[nx.Graph], device: 
     A_eval = stack_adjacency(graphs_eval, max_n_nodes)
 
     dataset_train = TensorDataset(A_train, X_train, Y_train)  # match up training data according to graph
-    dataset_eval = TensorDataset(A_eval, X_eval, Y_eval)  # match up test data according to graph
-    n_all_nodes_train = number_of_nodes(graphs_train[0])
-    n_all_nodes_eval = number_of_nodes(graphs_eval[0])
+    #dataset_eval = TensorDataset(A_eval, X_eval, Y_eval)  # match up test data according to graph
+    n_all_nodes_train = nx.number_of_nodes(graphs_train[0])
+    n_all_nodes_eval = nx.number_of_nodes(graphs_eval[0])
 
     # train/eval cycles
     accuracies = []  # collect accuracies from comparing predicted vs. true y-labels on test data for [n_rounds] rounds
@@ -157,7 +158,7 @@ def node_lvl(graphs_train: list[nx.Graph], graphs_eval: list[nx.Graph], device: 
     for round in range(n_rounds):
         print(f"\nRound {round}:")
         train_loader = DataLoader(dataset_train, batch_size=batch_size, shuffle=True)  # shuffle & batch up matched training data
-        eval_loader = DataLoader(dataset_eval, batch_size=batch_size, shuffle=True)  # shuffle & batch up matched test data
+        #eval_loader = DataLoader(dataset_eval, batch_size=batch_size, shuffle=True)  # shuffle & batch up matched test data
         accuracies.append(run_model(train_loader, A_eval, X_eval, Y_eval, input_dim, output_dim, n_all_nodes_train, n_all_nodes_eval, n_epochs, dropout_list, 'node', device))
 
     return final_results(accuracies)
@@ -247,12 +248,7 @@ def main(datasets: list[str]):
 
     #device = 'cpu'
     #device = 'cuda'
-    device = (
-    "cuda"
-    if th.cuda.is_available()
-    else "mps"
-    if th.backends.mps.is_available()
-    else "cpu")
+    device = ("cuda" if th.cuda.is_available() else "mps" if th.backends.mps.is_available() else "cpu")  # choose by device priority
     print(f"Device: {device}\n")  # which device is being used for torch operations
 
     # TODO model parameters: to be tested, chosen, global vs. dataset-specific?

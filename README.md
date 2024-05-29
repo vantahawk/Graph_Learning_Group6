@@ -74,13 +74,12 @@ Mean ± Standard Deviation of Accuracies on test data (rounded in %):
 | Dataset | Result       |
 | :------ | :----------- |
 |ENZYMES  | 15.5 ± 9.66 |
-|NCI1     | 67.3 ± 6.64 |
+|NCI1     | 68.13 ± 7.85 |
 |Citeseer | 68.38 ± 0.51 |
 |Cora     | 67.69 ± 0.62 |
 
 ## Discussion
 
-(outline, in progress)
 - unfortunately did not reach any of the accuracy targets in the exercise sheet
 - got at least close-ish for Citeseer & Cora
 - might need to experiment with dropout layers
@@ -91,7 +90,6 @@ Mean ± Standard Deviation of Accuracies on test data (rounded in %):
 
 ## Conclusion
 
-(outline, in progress)
 - if the issue with NCI1 is indeed due to overfitting, experimenting more with dropout layers might help (EDIT: has not shown notable improvements until now)
 - issue with ENZYMES still needs to be resolved
 - experimenting more with parameters like number of epochs and batch size, as well as hyperparameters of the optimizer, might yield further improvements for Citeseer & Cora, likely less so for ENZYMES & NCI1 though
@@ -101,5 +99,3 @@ Mean ± Standard Deviation of Accuracies on test data (rounded in %):
 ### Note on Exercise Split
 
 Given the largely sequential dependency of all the exercises - `1 -> 2 -> 3 -> 5` (graph-level) & `1 -> 2 -> 4 -> 6` (node-level) - and given our lack of opportunity to collaborate on everything in real-time, each one of us was practically forced to approach most or all of the exercises for themselves. As Benedict's solution (`benedict/sheet2`) seems to perform the best for the most part - having done a hyperparameter optimization and meeting at least two of the accuracy targets (for ENZYMES & NCI1) - it made the most sense to simply push all of his code to the `main` branch. Nonetheless the others' solution should also be noted. David's solution (`david/sheet2`) should also run as intended, however it reaches none of the accuracy targets (see his `README.md` for more details). Ahmet's solution (`ahmet/sheet2`) includes code for Ex.1, 2, 3 & 5.
-
-(add/change as needed)

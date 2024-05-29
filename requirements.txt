@@ -1,5 +1,6 @@
 aenum
 argparse
+#ast
 #importlib
 #inspect
 matplotlib
@@ -16,8 +17,10 @@ psutil
 pytorch-lightning
 scikit-learn
 scipy
+#smac
 #sys
 torch
+#torch-scatter
 torchvision
 #torchaudio
 tqdm
