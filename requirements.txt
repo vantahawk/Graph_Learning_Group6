@@ -17,10 +17,10 @@ psutil
 pytorch-lightning
 scikit-learn
 scipy
-#smac
+#smac  # missing requirements or ambiguous package
 #sys
 torch
-#torch-scatter
+#torch-scatter  # has to be installed separately via: ...> pip install torch-scatter -f https://data.pyg.org/whl/torch-2.3.0+${CUDA}.html with '${CUDA}' = 'cpu', 'cu118' or 'cu121' depending on PyTorch installation (usually 'cpu')
 torchvision
 #torchaudio
 tqdm
