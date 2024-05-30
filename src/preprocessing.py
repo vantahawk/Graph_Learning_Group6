@@ -23,8 +23,8 @@ def norm_adjacency(graph: nx.Graph) -> np.ndarray:
 
     # assign elements of normed adj.mat.
     for i in range(N):
-        A_norm[i][i] = 1 / (np.sum(A[:, i]) + 1)  # simplified for i=j
-        for j in range(i+1, N):  # run over upper-right triangle of A
+        A_norm[i][i] = 1 / (np.sum(A[i]) + 1)  # simplified for i=j
+        for j in range(i + 1, N):  # run over upper-right triangle of A
             if A[i][j] == 0:  # if no edge
                 A_norm[i][j] = 0
             else:
