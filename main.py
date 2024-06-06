@@ -98,10 +98,10 @@ def main(datasets: list[str], scatter: list[str]) -> None:
     batch_size = 10 #1 #10 #100 #1000 #10000  # 10 seems promising, 100 still okay, 1 takes quite long, 1000 performs badly
     n_epochs = 10 #10 #20 #100
     # GNN
-    n_GNN_layers = 2 #1 #2 #3 #5 #10
-    dim_between = 3 #5
-    dim_M = 3 #5 #6 #12
-    dim_U = 3 #5 #10  # inactive for n_U_layers <= 1
+    n_GNN_layers = 1 #1 #2 #3 #5 #10
+    dim_between = 5 #3 #5
+    dim_M = 5 #3 #5 #6 #12
+    dim_U = 5 #3 #5 #10  # inactive for n_U_layers <= 1
     n_M_layers = 1 #2
     n_U_layers = 1 #2
     activation_M = 'relu'  # see if-statements in layer.py, default: 'relu'
@@ -111,7 +111,7 @@ def main(datasets: list[str], scatter: list[str]) -> None:
     n_virtual_layers = 1 #1 #2  # inactive for n_GNN_layers <= 1
     # MLP
     n_MLP_layers = 1 #1 #2 #3
-    dim_MLP = 3  # inactive for n_MLP_layers <= 1
+    dim_MLP = 5 #3  # inactive for n_MLP_layers <= 1
 
 
     ### Preparation

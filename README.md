@@ -41,7 +41,6 @@ or
 .../group6$ python main.py
 ```
 
-(describe what main.py does with datasets, command line arg.s & --help, repo structure & notes on Ex.1-5, etc.)
 ...runs the evaluation (Ex.6) on all 3 ZINC datasets ['Train', 'Val', 'Test'] and for all 3 scatter aggregation types ['sum', 'mean', 'max'] once in said orders (9 results total). Alternatively specific datasets and/or scatter-types can be chosen by setting the resp. keywords as stated here as optional arguments; datasets after flag `-d` and scatter-types after flag `-s`, all separated by spaces. E.g. in order to evaluate ZINC_Val & ZINC_Test using scatter_max & scatter_sum, set:
 
 `python main.py -d Val Test -s max sum`
@@ -74,19 +73,19 @@ We used the optimizer 'Adam' and the l1-loss function. (scatter_sum turned out t
 - Update function (U)
     - number of U layers:
     - hidden dimension of U:
-    - activation function of hidden U layers:
+    - activation function of hidden U layers: ReLU
 - Virtual Nodes (VN)
     - use virtual nodes: (Yes/No)
     - number of VN-MLP layers:
-    - activation function of VN- MLP layers:
+    - activation function of VN- MLP layers: ReLU
 - (Post-Pooling) MLP
     - number of MLP layers:
     - hidden dimension of MLP:
-    - activation function of hidden MLP layers:
+    - activation function of hidden MLP layers: ReLU
 
 ### Results for Ex. 6
 
-Mean Absolute Error (rounded) on the ZINC datasets, for each scatter operation type:
+Mean Absolute Error (rounded) on the ZINC datasets, for each scatter aggregation type:
 
 | Scatter ↓ , Dataset → | Train | Val  | Test |
 | :-------------------- | :---  | :--- | :--- |
@@ -107,4 +106,4 @@ Mean Absolute Error (rounded) on the ZINC datasets, for each scatter operation t
 
 ### Note on Exercise Split
 
-In part due to difficult time constraints on both Benedict and Ahmet, David ended up providing most of the codebase this time around. Benedict greatly helped to further debug and refine the code, and ran a (limited) hyperparameter optimization over the parameters mentioned in the list above. Ahmet also made himself available for further improvements on the code.
+In part due to difficult time constraints on both Benedict and Ahmet, David ended up providing most of the codebase this time around. Benedict greatly helped to further debug and refine the code, and ran a hyperparameter optimization over the parameters mentioned in the list above. We ended up pushing his version on `benedict/sheet3` to the `main` branch. Ahmet also made himself available for further improvements on the code.
