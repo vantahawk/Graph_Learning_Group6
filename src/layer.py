@@ -1,3 +1,4 @@
+import numpy as np
 import torch as th
 from torch.nn import Linear, Module, ModuleList
 import torch.nn.functional as F
@@ -7,11 +8,7 @@ from torch_scatter import scatter_sum, scatter_mean, scatter_max
 
 def select_nodes(input: th.Tensor, idx: th.Tensor) -> th.Tensor:
     '''returns th.tensor with rows/node-embeddings (dim=0) selected from [input] th.tensor (1D) according to node index tensor [idx]'''
-    row_list = []
-    for index in list(idx):
-        row_list.append(input[index])
-    return th.cat(row_list, 0)
-
+    return th.tensor([list(input[index]) for index in list(idx)])
 
 
 def scatter_max_shortcut(src: th.Tensor, idx: th.Tensor, dim: int):
@@ -35,7 +32,8 @@ def skewed_identity(x: th.Tensor) -> th.Tensor:
 
 def simple_elu(x: th.Tensor) -> th.Tensor:
     '''custom activation fct. as simple, non-linear, twice cont. diff.able alternative to ReLU & ELU, similar to Softplus (shifted down)'''
-    return th.mul(x, F.softsign(x) + 1) / 2  # all op.s elem.wise, formula: x * (1 + x / (1 + |x|)) / 2
+    #return th.mul(x, F.softsign(x) + 1) / 2  # all op.s elem.wise, formula: x * (1 + x / (1 + |x|)) / 2
+    return th.mul(x, F.softsign(x) + 1)  # scaled, formula: x * (1 + x / (1 + |x|))
     #return th.mul(x, F.softsign(x) + 1) / 2 + 0.5  # shifted up, formula: (1 + x * (1 + x / (1 + |x|))) / 2
 
 
@@ -50,18 +48,18 @@ class GNN_Layer(Module):
         self.n_M_hidden = n_M_layers - 1  # number of hidden single, linear layers in M
         self.n_U_hidden = n_U_layers - 1  # number of hidden single, linear layers in U
 
-        # TODO investigate & compare different (non-linear) activation fct.s...
+        # TODO investigate & compare different non-linear activation fct.s...
         # activation fct. for each layer of M
-        #self.activation_M = F.relu
-        self.activation_M = F.softsign  # simple, sigmoid-like: x / (1 + |x|)
+        self.activation_M = F.relu  # promising?
+        #self.activation_M = F.softsign  # simple, sigmoid-like: x / (1 + |x|), okay?
         #self.activation_M = F.softplus  # smooth alternative to ReLU, default: beta=1, threshold=20
         #self.activation_M = F.elu  # similar to Softplus & ReLU (-1 -> origin -> identity), default: alpha=1
         #self.activation_M = F.tanh
         #self.activation_M = F.tanhshrink
 
-        #self.activation_M = soft_relu
-        #self.activation_M = skewed_identity
-        #self.activation_M = simple_elu
+        #self.activation_M = soft_relu  # less promising?
+        #self.activation_M = skewed_identity  # promising?
+        #self.activation_M = simple_elu  # faily promising?
 
         # activation fct. for each layer of U
         self.activation_U = F.relu
@@ -71,13 +69,13 @@ class GNN_Layer(Module):
         self.M_hidden = ModuleList([Linear(dim_M, dim_M, bias=True) for layer in range(self.n_M_hidden)])
         # ...& U (update)
         if n_U_layers > 1:  # for >=2 U-layers
-            # list of hidden U-layers including prior input U-layer
+            # list of hidden U-layers including prior input layer of U
             self.U_hidden = ModuleList(
                 [Linear(dim_in + dim_M, dim_U, bias=True)] + [Linear(dim_U, dim_U, bias=True) for layer in range(n_U_layers - 2)])
-            self.U_output = Linear(dim_U, dim_out, bias=True)  # output U-layer
+            self.U_output = Linear(dim_U, dim_out, bias=True)  # output layer of U
         else:  # n_U_layers <= 1
             self.U_hidden = ModuleList([])  # no hidden U-layers
-            self.U_output = Linear(dim_in + dim_M, dim_out, bias=True)  # singular output U-layer
+            self.U_output = Linear(dim_in + dim_M, dim_out, bias=True)  # singular output layer of U
 
         # choose scatter aggregation type for message passing
         if scatter_type == 'sum':
@@ -91,7 +89,7 @@ class GNN_Layer(Module):
     def forward(self, x: th.Tensor, edge_features: th.Tensor, edge_idx: th.Tensor, batch_idx: th.Tensor) -> th.Tensor:
         '''forward fct. for single GNN layer as described in exercise sheet/lecture script, uses scatter-operations w/ edge_idx as well as edge_features for message-passing'''
         # select node-level input by start nodes (edge_idx[0]) & concatenate them w/ edge_features
-        y = th.cat([select_nodes(x, edge_idx[0]), edge_features], -1)
+        y = th.cat([select_nodes(x, edge_idx[0]), edge_features], -1)#.type(th.float)
 
         y = self.M_input(y)  # apply input layer of M
         y = self.activation_M(y)
@@ -101,7 +99,8 @@ class GNN_Layer(Module):
             y = self.activation_M(y)
 
         # select node-level input by end nodes (edge_idx[1]), scatter output from M according to edge_idx & concatenate both
-        z = th.cat([select_nodes(x, edge_idx[1]), self.scatter(y, edge_idx[1], dim=0)], -1)
+        z = th.cat([x, self.scatter(y, edge_idx[1], dim=0)], -1)
+        #z = th.cat([select_nodes(x, edge_idx[1]), self.scatter(y, edge_idx[1], dim=0)], -1)
 
         for layer in range(self.n_U_hidden):  # apply hidden layers of U
             z = self.U_hidden[layer](z)

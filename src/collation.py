@@ -12,7 +12,8 @@ def custom_collate(sparse_rep_list: list[tuple[th.Tensor, th.Tensor, th.Tensor, 
         # append each component list
         node_features_col.append(node_features)
         edge_features_col.append(edge_features)
-        graph_labels_col.append(graph_label)
+        #graph_labels_col.append(graph_label)
+        graph_labels_col.append([graph_label])
         # append edge_idx of current graph w/ elements shifted by number of nodes in all graphs up to this point (idx_shift)
         edge_idx_col.append(edge_idx + idx_shift * th.ones(edge_idx.shape))
         batch_idx.append(graph_index * th.ones(n_nodes))  # append batch_idx by repeating graph_index for each node in current graph
@@ -21,4 +22,5 @@ def custom_collate(sparse_rep_list: list[tuple[th.Tensor, th.Tensor, th.Tensor, 
         graph_index += 1
 
     # return concatenated sparse representation for collated graph of batch
-    return th.cat(edge_idx_col, -1).type(th.long), th.cat(node_features_col, 0), th.cat(edge_features_col, 0), th.cat(graph_labels_col, 0), th.cat(batch_idx, 0).type(th.long)
+    return th.cat(edge_idx_col, -1).type(th.long), th.cat(node_features_col, 0), th.cat(edge_features_col, 0), th.tensor(graph_labels_col), th.cat(batch_idx, 0).type(th.long)
+    #th.cat(graph_labels_col, 0)

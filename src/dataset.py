@@ -29,20 +29,22 @@ class Custom_Dataset(Dataset):
         self.nodes_end = [[edge[1] for edge in graph.edges(data=True)]
                           for graph in graphs]  # end nodes all edges in graph
         self.edge_idx = [th.tensor(np.array([self.nodes_start[index] + self.nodes_end[index],
-                                             self.nodes_end[index] + self.nodes_start[index]])).type(th.long)
+                                             self.nodes_end[index] + self.nodes_start[index]]))#.type(th.long)
                          for index in range(self.length)]  # directed edge index list, i.e. w/ reversed duplicate
 
         self.node_features = [th.tensor(np.array([one_hot_encoder(node[1]['node_label'], 21)
-                                                  for node in graph.nodes(data=True)])) for graph in graphs]  # one-hot encoded
+                                                  for node in graph.nodes(data=True)])).type(th.float)
+                              for graph in graphs]  # one-hot encoded
         #self.node_features = [th.tensor(np.array([node[1]['node_label']
-        #                                          for node in graph.nodes(data=True)])) for graph in graphs]  # *not* one-hot encoded
+        #                                          for node in graph.nodes(data=True)])).type(th.float)
+        #                      for graph in graphs]  # *not* one-hot encoded
 
         self.edge_features = [[one_hot_encoder(edge[2]['edge_label'] - 1, 3)
                                for edge in graph.edges(data=True)] for graph in graphs]  # one-hot encoded
-        self.edge_features_double = [th.tensor(np.array(self.edge_features[index] + self.edge_features[index]))
+        self.edge_features_double = [th.tensor(np.array(self.edge_features[index] + self.edge_features[index])).type(th.float)
                                      for index in range(self.length)]  # duplicated
 
-        self.graph_labels = [th.tensor(graph.graph['label'][0]) for graph in graphs]  # scalar, real-valued
+        self.graph_labels = [th.tensor(np.array(graph.graph['label'][0])).type(th.float) for graph in graphs]  # scalar, real-valued
 
 
     def __getitem__(self, index: int) -> tuple[th.Tensor, th.Tensor, th.Tensor, th.Tensor]:

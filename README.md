@@ -45,26 +45,42 @@ or
 
 ## Ex. 6
 
-### Model Attributes & Parameters
+### Attributes & Parameters
 
 We used the optimizer 'Adam' and the l1-loss function.
 
-- batch size for ZINC_Train:
-- batch size for ZINC_Val:
-- batch size for ZINC_Test:
-- number of epochs for ZINC_Train:
-- number of epochs for ZINC_Val:
-- number of epochs for ZINC_Test:
+- Training
+    - batch size:
+    - number of epochs:
+- GNN
+    - number of GNN layers:
+    - dimension between GNN layers:
+- Message function (M)
+    - number of M layers:
+    - hidden dimension of M:
+    - activation function of M layers:
+- Update function (U)
+    - number of U layers:
+    - hidden dimension of U:
+    - activation function of hidden U layers:
+- Virtual Nodes (VN)
+    - use virtual nodes: (Yes/No)
+    - number of VN-MLP layers:
+    - activation function of VN- MLP layers:
+- (Post-Pooling) MLP
+    - number of MLP layers:
+    - hidden dimension of MLP:
+    - activation function of hidden MLP layers:
 
 ### Results for Ex. 6
 
-Mean Absolute Error (rounded in %) on the ZINC datasets:
+Mean Absolute Error (rounded) on the ZINC datasets, for each scatter operation type:
 
-| Dataset | Result       |
-| :------ | :----------- |
-|Train    |  |
-|Val      |  |
-|Test     |  |
+| Scatter ↓ , Dataset → | Train      | Val        | Test       |
+| :-------------------- | :--------- | :--------- | :--------- |
+| SUM                   |  |  |  |
+| MEAN                  |  |  |  |
+| MAX                   |  |  |  |
 
 ## Discussion
 
