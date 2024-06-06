@@ -29,13 +29,13 @@ class Custom_Dataset(Dataset):
         self.nodes_end = [[edge[1] for edge in graph.edges(data=True)]
                           for graph in graphs]  # end nodes all edges in graph
         self.edge_idx = [th.tensor(np.array([self.nodes_start[index] + self.nodes_end[index],
-                                             self.nodes_end[index] + self.nodes_start[index]]))#.type(th.long)
+                                             self.nodes_end[index] + self.nodes_start[index]])).type(th.long)
                          for index in range(self.length)]  # directed edge index list, i.e. w/ reversed duplicate
 
         self.node_features = [th.tensor(np.array([one_hot_encoder(node[1]['node_label'], 21)
                                                   for node in graph.nodes(data=True)])).type(th.float)
                               for graph in graphs]  # one-hot encoded
-        #self.node_features = [th.tensor(np.array([node[1]['node_label']
+        #self.node_features = [th.tensor(np.array([[node[1]['node_label']]
         #                                          for node in graph.nodes(data=True)])).type(th.float)
         #                      for graph in graphs]  # *not* one-hot encoded
 
