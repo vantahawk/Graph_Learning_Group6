@@ -19,6 +19,7 @@ import torch.nn.functional as F
 from sklearn.model_selection import KFold
 from pandas import DataFrame
 from networkx import Graph
+from timeit import timeit
 
 # for how to parse args, see the docstring for parseargs
 
@@ -47,10 +48,16 @@ from networkx import Graph
         "help": "Whether to use the default Hyperparameters or optimize for them using Smac3.",
         "flags":["def-hps"]
     },
+    rec_times={
+        "default":True,
+        "type":bool,
+        "help":"Wether to record training and inference times.",
+        "flags":["t"]
+    },
     __description="The entry point of our GCN implementation.\nMay be be called this way:\n\tpython src/main.py [--arg value]*", 
     __help=True
 )
-def main(level:Literal["graph", "node"], device:str, dataset:str, default_hps:bool):
+def main(level:Literal["graph", "node"], device:str, dataset:str, default_hps:bool, rec_times:bool):
     #just the calling of the implementations should be in this method.
     if device not in ["cpu", "cuda"]:
         raise ValueError("The selected device is not available. Please select one of: [\"cpu\", \"cuda\"]")
@@ -124,9 +131,11 @@ def main(level:Literal["graph", "node"], device:str, dataset:str, default_hps:bo
 
             cv:KFold = KFold(10, shuffle=True)
             accuracies = []
+            times = {"train":[], "test":[]}
             feature_idx = np.arange(features.shape[0]).reshape((-1, 1))
             label_idx = np.arange(labels.shape[0])
             for train_idx, val_idx in cv.split(feature_idx, label_idx):
+                
                 Adj_train, X_train, y_train = adjacency_tensors[train_idx], Tensor(features[train_idx]), Tensor(labels[train_idx])
                 Adj_test, X_test, y_test = adjacency_tensors[val_idx], Tensor(features[val_idx]), Tensor(labels[val_idx])
 
@@ -162,6 +171,7 @@ def main(level:Literal["graph", "node"], device:str, dataset:str, default_hps:bo
 
                 train_loss:Tensor = None
                 val_loss:Tensor = None
+                train_time = timeit()
                 for epoch in range(hyperparams["epochs"]):
                     #type checker
                     adj:Tensor
@@ -201,8 +211,11 @@ def main(level:Literal["graph", "node"], device:str, dataset:str, default_hps:bo
                     if hyperparams["use_early_stop"] and early_stop(val_loss.item()):
                         print("Early stopping at epoch:", epoch)
                         break
+                train_time = timeit() - train_time
+                times["train"].append(train_time)
 
                 model.eval()
+                test_time = timeit()
                 with torch.no_grad():
                     y_pred_logits = model(Adj_test, X_test)
                     y_pred_probs = F.softmax(y_pred_logits, dim=1) #apply softmax to get class distributions
@@ -211,10 +224,19 @@ def main(level:Literal["graph", "node"], device:str, dataset:str, default_hps:bo
                     accuracies.append(
                         (y_pred_labels == y_test_labels).float().mean().to('cpu').item()
                     )
+                test_time = timeit() - test_time
+                times["test"].append(test_time)
         
             accuracies = np.array(accuracies)
+            train_times = np.array(times["train"])
+            test_times = np.array(times["test"])
             print(f"Accuracies:\t MEAN \t STD\n\t\t\t\t{accuracies.mean():.2f}\t{accuracies.std():.2f}")
-            accs_df = DataFrame(accuracies)
+            if rec_times:
+                print(f"Training took {train_times.mean():.2f} ({train_times.std():.2f}) seconds")
+                print(f"Testing took {test_times.mean():.2f} ({test_times.std():.2f}) seconds")
+                accs_df = DataFrame(np.concatenate((accuracies, train_times, test_times)), axis=1)
+            else:
+                accs_df = DataFrame(accuracies)
             csv_out:str = unique_file(os.path.join("out", dataset, "cv_results.csv"))
             accs_df.to_csv(csv_out)
             print("Saved the accuracies to:", csv_out)
@@ -268,7 +290,7 @@ def main(level:Literal["graph", "node"], device:str, dataset:str, default_hps:bo
                 tmodel = TorchModel(NodeLevelGCN, Adj_train, X_train, y_train, X_test=X_test, y_test=y_test, Adj_test=Adj_test, device=device, layers=3)
             else:
                 print("Now optimizing the hyperparams with smac, this may take a while.")
-                hyperparams, tmodel = opt_with_smac(NodeLevelGCN,Adj_train, X_train, y_train, dataset, device, layers=3, intensifier_type="SuccessHalving", X_test=X_test, y_test=y_test, Adj_test=Adj_test)
+                hyperparams, tmodel = opt_with_smac(NodeLevelGCN,Adj_train, X_train, y_train, dataset, device, layers=5, intensifier_type="SuccessHalving", X_test=X_test, y_test=y_test, Adj_test=Adj_test)
                 print("Optimized the hyperparams and saved them. Now verifying the run with repetitions and reporting accuracy.")
                 os.makedirs(f"out/{dataset}", exist_ok=True)
                 hparams_out:str = unique_file(f"out/{dataset}/best_params.csv")
@@ -284,6 +306,7 @@ def main(level:Literal["graph", "node"], device:str, dataset:str, default_hps:bo
             #TODO: make batch_size depend on 
             train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
             accuracies = []
+            times = {"train":[], "test":[]}
             #repeat 10 times
             for rep in range(10):
                 # construct neural network and move it to device
@@ -310,6 +333,7 @@ def main(level:Literal["graph", "node"], device:str, dataset:str, default_hps:bo
 
                 train_loss:Tensor = None
                 val_loss:Tensor = None
+                train_time = timeit()
                 for epoch in range(hyperparams["epochs"]):
                     
                     for adj, x, y_true in train_loader:#batches
@@ -337,9 +361,11 @@ def main(level:Literal["graph", "node"], device:str, dataset:str, default_hps:bo
 
                     if hyperparams["use_early_stop"] and early_stop(val_loss.item()):
                         break
-
+                train_time = timeit() - train_time
+                times["train"].append(train_time)
                         
                 model.eval()
+                test_time = timeit()
                 with torch.no_grad():
                     y_pred_logits = model(Adj_test, X_test)
                     y_pred_probs = F.softmax(y_pred_logits[0], dim=1) #apply softmax to get class distributions
@@ -348,9 +374,19 @@ def main(level:Literal["graph", "node"], device:str, dataset:str, default_hps:bo
                     accuracies.append(
                         (y_pred_labels == y_test_labels).float().mean().to('cpu').item()
                     )
-        
+                test_time = timeit() - test_time
+                times["test"].append(test_time)
+
+            train_times = np.array(times["train"])
+            test_times = np.array(times["test"])
             accuracies = np.array(accuracies)
             print(f"Accuracies:\t MEAN \t STD\n\t\t\t\t{accuracies.mean():.2f}\t{accuracies.std():.2f}")
+            if rec_times:
+                print(f"Training took {train_times.mean():.2f} ({train_times.std():.2f}) seconds")
+                print(f"Testing took {test_times.mean():.2f} ({test_times.std():.2f}) seconds")
+                accs_df = DataFrame(np.concatenate((accuracies, train_times, test_times)), axis=1)
+            else:
+                accs_df = DataFrame(accuracies)
             outpath = unique_file(os.path.join("out", dataset, "results.csv"))
             DataFrame(accuracies).to_csv(outpath)
             print("Saved the individual accuracies to:", outpath)

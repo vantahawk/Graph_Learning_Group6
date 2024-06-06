@@ -46,4 +46,5 @@ fi
 
 python -m pip install -r requirements.txt
 
-python src/main.py --l node --d cpu --ds Cora
+python src/main.py --l node --d cpu --ds Cora --def-hps True
+python src/main.py --l node --d cpu --ds Citeseer --def-hps True

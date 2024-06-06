@@ -38,9 +38,6 @@ class GeneralGCNLayer(Module):
         W = self.W.unsqueeze(0).expand(batch_size, -1, -1)
         
         #somehow it breaks if torch does not need to check for the device, idk, seems to do it non-blocking despite it should do it blockingly
-        # print("A", A.get_device(), "H", H.get_device(), "W", W.get_device())
-        A.get_device()
-        H.get_device()
         
         #compute the KQV product of the tensors
         H_prime:Tensor = batch_matmul(A, H)

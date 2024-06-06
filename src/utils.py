@@ -248,7 +248,7 @@ class TorchModel:
         # create dataset and loader for mini batches
         train_dataset = TensorDataset(self.Adj, self.X_train, self.y_train )
         #TODO: make batch_size depend on 
-        train_loader = DataLoader(train_dataset, batch_size=self.batch_size if self.batch_size>0 else config_dict["batch_size"], shuffle=True)
+        train_loader = DataLoader(train_dataset, batch_size=self.batch_size if self.batch_size!=None else config_dict["batch_size"], shuffle=True)
 
         # construct neural network and move it to device
         model:Module = self.model(
@@ -366,16 +366,16 @@ def opt_with_smac(model:Module, Adj:Tensor, X:np.ndarray, y:np.ndarray, dataset:
     scenario = Scenario(
         torch_model.configspace,
         n_trials = 2000,
-        walltime_limit = 60*60*1, #one hour
+        walltime_limit = 60*60*0.5, #one hour
         min_budget = 50,
-        max_budget = 10000 if dataset in ["Cora", "Citeseer"] else 500,
+        max_budget = 2000 if dataset in ["Cora", "Citeseer"] else 500,
         n_workers = 1#how many processes can run on the same volta gpu? about 4
     )
 
     #basically a bohb, run with a population of 5
     initial_design = MultiFidelityFacade.get_initial_design(
         scenario, 
-        n_configs=5
+        n_configs=50
     )
     if intensifier_type=="Hyperband":
         intensifier = Hyperband(
@@ -407,7 +407,7 @@ def opt_with_smac(model:Module, Adj:Tensor, X:np.ndarray, y:np.ndarray, dataset:
     #we don't optimize the epochs, we optimize early stopping to optimize that.
     plot_trajectory([smac])
 
-    return (best_config | {"epochs":10000 if dataset in ["Cora", "Citeseer"] else 500}), torch_model
+    return (best_config | {"epochs":2000 if dataset in ["Cora", "Citeseer"] else 500}), torch_model
     
 def plot_trajectory(facades: list[AbstractFacade]) -> None:
     """Plots the trajectory (incumbents) of the optimization process."""

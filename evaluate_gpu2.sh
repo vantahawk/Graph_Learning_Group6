@@ -11,7 +11,7 @@
 #SBATCH --output=/rwthfs/rz/cluster/home/sg114224/mspraktikum/logs/%j.log
 #SBATCH --mail-user=benedict.gerlach@rwth-aachen.de
 #SBATCH --mail-type=ALL#
-
+#SBATCH --account=thes1673
 
 
 ###### EXEC PATH ########
@@ -48,3 +48,4 @@ fi
 python -m pip install -r requirements.txt
 
 python src/main.py --l node --d cuda --ds Cora
+python src/main.py --l node --d cuda --ds Citeseer

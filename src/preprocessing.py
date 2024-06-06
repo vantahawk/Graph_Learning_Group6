@@ -44,6 +44,7 @@ def normalized_adjacency_matrix(graphs: Graph|List[Graph])->Tensor:
     #given that A is binary, just get the sqrt of the product of the degree vectors
         #compute the degrees and add one, so we have positive values only
         D:np.ndarray = np.reshape(A.copy().sum(axis=1)+1, (1,-1)) 
+        D = D+1 #add the self-loop-> necessary for good message passing
         D = np.sqrt(D.T @ D)
         #pad into correct size.
         R:np.ndarray = np.ndarray((max_node_count, max_node_count))
@@ -52,5 +53,5 @@ def normalized_adjacency_matrix(graphs: Graph|List[Graph])->Tensor:
         As[i] = R
 
     #use float32 as the precision should be high enough and we save compute
-    return Tensor(np.array(As))
+    return Tensor(np.array(As)) 
     

@@ -3,7 +3,7 @@
 #SBATCH --job-name="graph-learn-torch"
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=48
+#SBATCH --cpus-per-task=96
 #SBATCH --partition=c23ms
 #SBATCH --time=24:00:00
 #SBATCH --error=/rwthfs/rz/cluster/home/sg114224/mspraktikum/logs/%j.err.log
@@ -47,3 +47,4 @@ fi
 python -m pip install -r requirements.txt
 
 python src/main.py --l graph --d cpu --ds NCI1 --def-hps True
+python src/main.py --l graph --d cpu --ds ENZYMES --def-hps True

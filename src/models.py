@@ -1,9 +1,6 @@
 from torch import Tensor
-from torch.nn import Module, Sequential, Linear,ReLU, functional as F, AvgPool1d, Dropout, ModuleList
-from layers import GeneralGCNLayer, PoolNodeEmbeddings, Padding
-from typing import Literal
-from preprocessing import normalized_adjacency_matrix
-from networkx import Graph
+from torch.nn import Module, Sequential, Linear,ReLU, functional as F, Dropout, ModuleList
+from layers import GeneralGCNLayer, PoolNodeEmbeddings
 
 class GraphLevelGCN(Module):
 
@@ -142,7 +139,6 @@ class NodeLevelGCN(Module):
             h = self.hidden_layers[i+1](adj, h)
             h = self.nonlin(h)
 
-        h = self.output_gcn_layer(adj, h)
         h = self.output_gcn_layer(adj, h)
 
         y = self.classifier_layer(h)
