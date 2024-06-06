@@ -4,8 +4,6 @@ from torch.nn import Linear, Module, ModuleList
 import torch.nn.functional as F
 from torch_scatter import scatter_sum
 
-# internal imports
-from src.layer import select_nodes
 
 
 class Virtual_Node(Module):
@@ -25,4 +23,4 @@ class Virtual_Node(Module):
             y = self.virtual_MLP[layer](y)
             y = F.relu(y)  # TODO optional?, different activation fct.?
 
-        return x + select_nodes(y, batch_idx)  # expand graph-lvl embedding back to node-lvl w/ batch_idx & add it to original input
+        return x + y[batch_idx]  # expand graph-lvl embedding back to node-lvl w/ batch_idx & add it to original input
