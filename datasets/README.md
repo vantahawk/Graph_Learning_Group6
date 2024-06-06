@@ -1,7 +1,4 @@
-This file Contains the Cora and Citeseer datasets [1] for node classification.
-We have already split each dataset into training and evaluation data.
-
-For Task 4 you can reuse the ENZYMES and NCI1 datasets provided for Sheet 1.
+This directory contains the ZINC dataset [1] for graph regression. As input features the graphs have 21 discrete node labels and 3 discrete edge labels. The target to predict is a single real-valued scalar.
 
 References:
 
