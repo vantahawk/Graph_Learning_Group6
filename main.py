@@ -58,7 +58,6 @@ def main(scatter: list[str], hpo:bool=False) -> None:
             else:
                 pass
         
-        
         param_default:Dict[str, Any] = {
             "batch_size": 16,
             "beta1": 0.9028,
@@ -111,7 +110,7 @@ def main(scatter: list[str], hpo:bool=False) -> None:
     test_loader = DataLoader(Custom_Dataset(test_graphs), batch_size=len(test_graphs), shuffle=True, collate_fn=custom_collate)
 
 
-
+    import wandb
     ### Run Model
     MAE_table = []
     for scatter_type in scatter_type_list:  # run thru list of valid scatter-types
@@ -142,6 +141,7 @@ def main(scatter: list[str], hpo:bool=False) -> None:
         model.train()  # switch model to training mode
         model.to(device)  # move model to device
         
+        wandb.init(project="gnn_zinc", config= param_default | {"scatter_type": scatter_type})
 
         # construct optimizer
         optimizer = Adam(model.parameters(), lr=param_default["lr"], betas=(param_default["beta1"], param_default["beta2"]), weight_decay=param_default["weight_decay"] if param_default["use_weight_decay"] else 0.0)  # TODO try diff. optimizers, parameters to be investigated, tested, chosen...
@@ -156,7 +156,8 @@ def main(scatter: list[str], hpo:bool=False) -> None:
         plat_scheduler = th.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5, threshold=0.0001, threshold_mode='rel', cooldown=1, min_lr=0, eps=1e-08, verbose=False)
         seq_scheduler = th.optim.lr_scheduler.SequentialLR(optimizer, [schedulerSlow, hpscheduler], [warm_up_epoch], param_default["n_epochs"])
 
-        train_loss:th.Tensor = th.tensor(0.0, device=device)  # initialize training loss
+        agg_train_loss:List[float] = []
+        val_loss:float = 0.0
         # run training & evaluation phase for [n_epochs]
         for epoch in range(param_default["n_epochs"]):
             # training phase
@@ -177,6 +178,8 @@ def main(scatter: list[str], hpo:bool=False) -> None:
                 # backward pass and sgd step
                 train_loss.backward()
                 optimizer.step()
+
+                agg_train_loss.append(train_loss.item())
 
             val_loss:float = 0.0
             model.eval()  # switch model to evaluation mode
@@ -205,9 +208,9 @@ def main(scatter: list[str], hpo:bool=False) -> None:
                 y_pred = model(node_features_col, edge_features_col, edge_idx_col, batch_idx)
                 MAE = F.l1_loss(y_pred, graph_labels_col, reduction='mean').item()
 
-        MAE_table.append((train_loss.item(), val_loss, MAE))
+        MAE_table.append((np.mean(agg_train_loss), val_loss, MAE))
 
-            
+        wandb.log({"train_loss": np.mean(agg_train_loss), "valid_loss": val_loss, "test_loss": MAE})
 
     # Print summary of all final MAEs
     print(f"\n\n---\n\n-> Mean Absolute Errors (rounded) for the chosen ZINC datasets and scatter operation types:\n\nScatter \u2193", end="")

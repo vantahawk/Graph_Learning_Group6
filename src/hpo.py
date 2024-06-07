@@ -150,7 +150,8 @@ class optObject:
         } | dict(config_) 
 
         #wandb init
-        wandb.init(project="gnn_zinc", config= config)
+        wandb.init(project="gnn_zinc", config=config)
+
 
         train_loader, valid_loader = get_data(config_['batch_size'], num_devices, budget=budget, seed=seed)
 
@@ -262,7 +263,7 @@ def hpt(device) -> Dict[str, Any]:
     # setup the hyperparameter optimization scenario
     scenario = Scenario(
         configspace=gnn_opt.configspace,
-        n_trials = 50,
+        n_trials = 300,
         n_workers=1,
         trial_walltime_limit=30*60,
         min_budget = 1000,
