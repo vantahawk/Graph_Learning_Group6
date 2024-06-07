@@ -84,29 +84,11 @@ class optObject:
     @property
     def configspace(self)->ConfigurationSpace:
         """The ConfigSpace to search in.
-
-        param_default:Dict[str, Any] = {
-            "n_GNN_layers": 1,
-            "dim_between": 3,
-            "dim_M": 3,
-            "dim_U": 3, # inactive for n_U_layers <= 1
-            "n_M_layers": 1,
-            "n_U_layers": 1,
-            "use_virtual_nodes": True, # inactive for n_GNN_layers <= 1
-            "n_virtual_layers": 1,
-            "n_MLP_layers": 1,
-            "dim_MLP": 3, # inactive for n_MLP_layers <= 1
-            "batch_size": 10, # 10 seems promising, 100 still okay, smaller/larger may take longer
-            "n_epochs": 20, 
-            "lr": 0.001,
-            "beta1": 0.9,
-            "beta2": 0.999,
-            "weight_decay": 0.0,
-            "use_weight_decay" : False,
-            "scatter_type":"mean"
-        }"""
+        """
         param_space:ConfigurationSpace = ConfigurationSpace()
-        #hyperparameters
+        ####hyperparameters
+
+        #layer & dimensions
         n_GNN_layers = Integer(name="n_GNN_layers", bounds=(1,20), default=5)
         dim_between = Integer(name="dim_between", bounds=(30, 500), default=100, log=True) #bounds=(3, 9)
         dim_M = Integer(name="dim_M", bounds=(30, 500), default=100, log=True)#bounds=(3, 15)
@@ -117,6 +99,7 @@ class optObject:
         n_M_layers = Integer(name="n_M_layers", bounds=(1, 3), default=1)
         n_U_layers = Integer(name="n_U_layers", bounds=(1, 3), default=1)
 
+        #nodes, training regularization
         use_virtual_nodes = Categorical(name="use_virtual_nodes", items=[0,1], default=1) #items=[1, 0]
         n_virtual_layers = Integer(name="n_virtual_layers", bounds=(1, 3), default=1)
         use_skip = Categorical(name="use_skip", items=[0,1], default=1)
@@ -124,10 +107,12 @@ class optObject:
         dropout_prob = Float(name="dropout_prob", bounds=(0.0, 0.5), default=0.5)
         use_dropout = Categorical(name="use_dropout", items=[1, 0], default=1)
         
+        #nonlinearities
         mlp_nlin = Categorical(name="mlp_nlin", items=list(activation_function.keys()), default='relu')
         m_nlin = Categorical(name="m_nlin", items=list(activation_function.keys()), default='leaky_relu')
         u_nlin = Categorical(name="u_nlin", items=list(activation_function.keys()), default='relu')
 
+        #other training related
         batch_size = Integer(name="batch_size", bounds=(10, 1000), default=10, log=True)
         n_epochs = Integer(name="n_epochs", bounds=(20, 100), default=30) # bounds=(20,100)
         lr = Float(name="lr", bounds=(0.00001, 0.01), default=0.001, log=True) #bounds=(1e-05, 1e-02)
@@ -137,9 +122,10 @@ class optObject:
         weight_decay = Float(name="weight_decay", bounds=(1e-06, 1e-03), default=1e-05, log=True)
         use_weight_decay = Categorical(name="use_weight_decay", items=[1, 0], default=0)
 
+        #scatter operation
         scatter_type = Categorical(name = "scatter_type", items=['sum', 'mean', 'max'], default='mean')
 
-        #conditions
+        #bounding conditions, st make the spaces more explicit, so it finds easier, st necessary
         use_wd = EqualsCondition(child=weight_decay, parent=use_weight_decay, value=True)
         # use_vn = GreaterThanCondition(child=use_virtual_nodes, parent=n_GNN_layers, value=1)
         use_vn = EqualsCondition(child=use_virtual_nodes, parent=n_GNN_layers, value=2)
@@ -164,7 +150,7 @@ class optObject:
         } | dict(config_) 
 
         #wandb init
-        wandb.init(project="gnn_zinc", config= config, group="rwth-wzl-seminar-ws22-ict" )
+        wandb.init(project="gnn_zinc", config= config)
 
         train_loader, valid_loader = get_data(config_['batch_size'], num_devices, budget=budget, seed=seed)
 
