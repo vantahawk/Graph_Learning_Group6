@@ -1,9 +1,11 @@
 aenum
 argparse
 #ast
+ConfigSpace  # for hpo.py
 #importlib
 #inspect
 matplotlib
+more_itertools  # for hpo.py
 networkx
 numba
 #numbers
@@ -16,7 +18,7 @@ psutil
 pytorch-lightning
 scikit-learn
 scipy
-#smac  # missing requirements or ambiguous package
+smac  # for hpo.py
 #sys
 torch
 #torch-scatter  # has to be installed separately via: ...> pip install torch-scatter -f https://data.pyg.org/whl/torch-2.3.0+${CUDA}.html with '${CUDA}' = 'cpu', 'cu118' or 'cu121' depending on PyTorch installation (usually 'cpu')
@@ -24,3 +26,4 @@ torchvision
 #torchaudio
 tqdm
 #typing
+wandb  # for hpo.py
