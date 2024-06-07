@@ -6,4 +6,8 @@
 *.pyc
 *.log
 __pycache__/
-/smac3_output/
+
+/jobs/
+/scripts/
+/*out*/
+/wandb/

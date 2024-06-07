@@ -60,49 +60,48 @@ Ex.1: `dataset.py`, Ex.2: `collation.py`, Ex. 3: `layer.py`, Ex.4: `pooling.py`,
 
 We used the optimizer 'Adam' and the l1-loss function. scatter_sum turned out to be the most promising aggregation type.
 
-- Training
-    - batch size: 10
-    - number of epochs: 20
-- GNN
-    - number of GNN layers: 2
-    - dimension between GNN layers: 5
-- Message function (M)
-    - number of M layers: 1
-    - hidden dimension of M: 5
-    - activation function of M layers: ReLU
-- Update function (U)
-    - number of U layers: 2
-    - hidden dimension of U: 5
-    - activation function of hidden U layers: ReLU
-- Virtual Nodes (VN)
-    - use virtual nodes: Yes
-    - number of VN-MLP layers: 1
-    - activation function of VN- MLP layers: ReLU
-- (Post-Pooling) MLP
-    - number of MLP layers: 2
-    - hidden dimension of MLP: 5
-    - activation function of hidden MLP layers: ReLU
+Parameter Values Used:
+ - weight_decay (<class 'float'>): 2.38002958385e-05
+ - use_virtual_nodes (<class 'int'>): 1
+ - n_virtual_layers (<class 'int'>): 1
+ - dim_U (<class 'int'>): 30
+ - batch_size (<class 'int'>): 16
+ - beta1 (<class 'float'>): 0.9027517490672556
+ - beta2 (<class 'numpy.float64'>): 0.999
+ - dim_M (<class 'int'>): 29
+ - dim_MLP (<class 'int'>): 15
+ - dim_between (<class 'int'>): 32
+ - lr (<class 'float'>): 0.0065104040069957
+ - lrsched (<class 'numpy.str_'>): cosine
+ - m_nlin (<class 'numpy.str_'>): leaky_relu
+ - mlp_nlin (<class 'numpy.str_'>): relu
+ - n_GNN_layers (<class 'int'>): 5
+ - n_MLP_layers (<class 'int'>): 1
+ - n_M_layers (<class 'int'>): 1
+ - n_U_layers (<class 'int'>): 3
+ - n_epochs (<class 'int'>): 75
+ - scatter_type (<class 'numpy.str_'>): sum
+ - u_nlin (<class 'numpy.str_'>): relu
+ - use_dropout (<class 'numpy.int64'>): 1
+ - use_residual (<class 'numpy.int64'>): 0
+ - use_skip (<class 'numpy.int64'>): 1
+ - use_weight_decay (<class 'numpy.int64'>): 1
+ - dropout_prob (<class 'float'>): 0.4619822213678156
 
 ### Results for Ex. 6
 
-Mean Absolute Error (rounded) on the ZINC datasets, for each scatter aggregation type:
+Mean Absolute Error (rounded) on the ZINC datasets, for the chosen scatter operation type:
 
-| Scatter ↓ , Dataset → | Train | Val  | Test |
-| :-------------------- | :---- | :--- | :--- |
-| SUM                   |  0.49 | 0.49 | 0.54 |
-| MEAN                  |  0.56 | 0.57 | 0.62 |
-| MAX                   |  0.55 | 0.57 | 0.62 |
+Scatter ↓
+sum:	 (0.1166774183511734, 0.30809709429740906, 0.3057083189487457)
 
+
+| Scatter ↓ , Dataset → | Train      | Val        | Test       |
+| :-------------------- | :--------- | :--------- | :--------- |
+| SUM                   | 0.1166774183511734 | 0.30809709429740906 | 0.3057083189487457 |
 
 ## Discussion
-
-The mean absolute error (MAE) develops generally as expected, with MAEs decaying roughly asymptotically for all 3 datasets with increasing epochs; usually most for ZINC_Train, less so for ZINC_Val and least for ZINC_Test.
-
-Unfortunately though we did not manage to reach the target MAE of 0.2 for ZINC_Test.
-
-Generally more than 2-5 GNN layers did not yield notably better or yielded worse results and only extended computation time unnecessarily. Performance and computation time also tend to worsen for a number of epochs below or high above a magnitude of around 10.
-
-Errors within dataset.py, collation.y or layer.py were considered as reasons for the subpar performance, but none were found and we figured, if present, they would yield much worse results even. There might be issues in how the layer module (lists) in GNN_Layer are constructed, but we also found no further error in there.
+We used a BOHB HPO to optimize the hyperparameters, we firsdt had problems achieving low errors, which lay in our bad choice for the dimension-spaces. They were just way to small.
 
 
 ## Conclusion
