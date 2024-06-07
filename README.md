@@ -107,10 +107,6 @@ Parameter Values Used:
 
 Mean Absolute Error (rounded) on the ZINC datasets, for the chosen scatter operation type:
 
-Scatter ↓
-sum:	 (0.1166774183511734, 0.30809709429740906, 0.3057083189487457)
-
-
 | Scatter ↓ , Dataset → | Train      | Val        | Test       |
 | :-------------------- | :--------- | :--------- | :--------- |
 | SUM                   | 0.1166774183511734 | 0.30809709429740906 | 0.3057083189487457 |
