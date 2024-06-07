@@ -61,7 +61,7 @@ def main(scatter: list[str], hpo:bool=False) -> None:
         
         
         param_default:Dict[str, Any] = {
-            "batch_norm": 16,
+            "batch_size": 16,
             "beta1": 0.9028,
             "beta2": 0.999,
             "dim_M": 29,
