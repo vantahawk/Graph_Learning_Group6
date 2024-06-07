@@ -121,6 +121,9 @@ We used a BOHB HPO to optimize the hyperparameters, we first had problems achiev
 We still think there might be sth wrong, but are not quite sure.
 
 
+You can have a look at this beauty:
+[wandb.ai/export](https://wandb.ai/gerlach/gnn_zinc/reports/Untitled-Report--Vmlldzo4MjQ5MTAw)
+
 ## Conclusion
 
 As mentioned, we maybe have yet to find some error of construction somewhere, before we can hope to reach the target MAE.
