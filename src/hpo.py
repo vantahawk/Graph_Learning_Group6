@@ -83,28 +83,7 @@ class optObject:
 
     @property
     def configspace(self)->ConfigurationSpace:
-        """The ConfigSpace to search in.
-
-        param_default:Dict[str, Any] = {
-            "n_GNN_layers": 1,
-            "dim_between": 3,
-            "dim_M": 3,
-            "dim_U": 3, # inactive for n_U_layers <= 1
-            "n_M_layers": 1,
-            "n_U_layers": 1,
-            "use_virtual_nodes": True, # inactive for n_GNN_layers <= 1
-            "n_virtual_layers": 1,
-            "n_MLP_layers": 1,
-            "dim_MLP": 3, # inactive for n_MLP_layers <= 1
-            "batch_size": 10, # 10 seems promising, 100 still okay, smaller/larger may take longer
-            "n_epochs": 20, 
-            "lr": 0.001,
-            "beta1": 0.9,
-            "beta2": 0.999,
-            "weight_decay": 0.0,
-            "use_weight_decay" : False,
-            "scatter_type":"mean"
-        }"""
+        """The ConfigSpace to search in."""
         param_space:ConfigurationSpace = ConfigurationSpace()
         #hyperparameters
         n_GNN_layers = Integer(name="n_GNN_layers", bounds=(1,20), default=5)

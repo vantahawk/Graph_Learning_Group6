@@ -28,15 +28,12 @@ from typing import List, Dict, Any, Tuple
 from src.model import GNN
 
 
-def main(datasets: list[str], scatter: list[str], hpo:bool=False) -> None:
+def main(scatter: list[str], hpo:bool=False) -> None:
     # TODO finish evaluation...
     '''for each parsed [scatter_type]: create model & optimizer object, send everything necessary to [device], train on ZINC_Train & evaluate on every (parsed) [datasets] in several epochs, return mean absolute error (MAE) on every (parsed) dataset'''
-    # device might need to be set explicitly, usually works fine on 'cpu' at least...
-    #device = 'cpu'
-    #device = 'cuda'
+
     #will use all available GPUs
-    # device = ("cuda" if th.cuda.is_available() else "mps" if th.backends.mps.is_available() else "cpu")  # choose by device priority
-    device="cuda"
+    device = ("cuda" if th.cuda.is_available() else "mps" if th.backends.mps.is_available() else "cpu")  # choose by device priority
     print(f"---\nDevice: {device}\n")  # which device is being used for torch operations
 
     device = th.device(device)  # set device for torch operations
@@ -61,10 +58,7 @@ def main(datasets: list[str], scatter: list[str], hpo:bool=False) -> None:
                     scatter_type_list.append(scatter_type)
             else:
                 pass
-        if len(scatter_type) == 0:
-            print("Using mean as scatter operation.")
-                
-            scatter_type_list = ["mean"]
+        
         
         param_default:Dict[str, Any] = {
             "batch_norm": 16,
@@ -94,6 +88,10 @@ def main(datasets: list[str], scatter: list[str], hpo:bool=False) -> None:
             "use_weight_decay": 1,
             "weight_decay": 0.0000238
         }
+        if len(scatter_type) == 0:
+            print("Using mean as scatter operation.")
+                
+            scatter_type_list = [param_default["scatter_type"]]
     
     ### Preparation
     # open ZINC_Train as list of nx.Graphs
@@ -248,4 +246,4 @@ if __name__ == "__main__":
     parser.add_argument("-hpo", "--hpt", action=argparse.BooleanOptionalAction, help="Run hyperparameter optimization using BOHB.", default=False)
 
     args = parser.parse_args()  # parse from command line  #'-d '.split()  #'-s '.split()
-    main(args.datasets, args.scatter, args.hpt)  # run w/ parsed arguments
+    main(args.scatter, args.hpt)  # run w/ parsed arguments

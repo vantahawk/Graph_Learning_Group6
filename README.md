@@ -103,6 +103,8 @@ sum:	 (0.1166774183511734, 0.30809709429740906, 0.3057083189487457)
 ## Discussion
 We used a BOHB HPO to optimize the hyperparameters, we firsdt had problems achieving low errors, which lay in our bad choice for the dimension-spaces. They were just way to small.
 
+You can look at the hpo search results on [wandb.ai](https://wandb.ai/gerlach/gnn_zinc?nw=nwusergerlach).
+
 
 ## Conclusion
 
