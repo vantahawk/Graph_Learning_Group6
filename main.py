@@ -31,7 +31,6 @@ from src.model import GNN
 def main(scatter: list[str], hpo:bool=False) -> None:
     # TODO finish evaluation...
     '''for each parsed [scatter_type]: create model & optimizer object, send everything necessary to [device], train on ZINC_Train & evaluate on every (parsed) [datasets] in several epochs, return mean absolute error (MAE) on every (parsed) dataset'''
-
     #will use all available GPUs
     device = ("cuda" if th.cuda.is_available() else "mps" if th.backends.mps.is_available() else "cpu")  # choose by device priority
     print(f"---\nDevice: {device}\n")  # which device is being used for torch operations
