@@ -13,7 +13,6 @@ pandas
 #pickle
 protobuf
 psutil
-#pytorch
 pytorch-lightning
 scikit-learn
 scipy
