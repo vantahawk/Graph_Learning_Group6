@@ -7,7 +7,7 @@ import argparse
 import pickle
 #from sklearn.metrics import mean_absolute_error
 #from sympy import Line
-from sympy import use
+#from sympy import use
 import torch as th
 from torch.nn import Linear, Module, ModuleList
 import torch.nn.functional as F
@@ -96,22 +96,22 @@ def main(datasets: list[str], scatter: list[str]) -> None:
     ### Parameters
     # training
     batch_size = 10 #1 #10 #100 #1000 #10000  # 10 seems promising, 100 still okay, 1 takes quite long, 1000 performs badly
-    n_epochs = 10 #10 #20 #100
+    n_epochs = 20 #10 #20 #30 #50 #100
     # GNN
-    n_GNN_layers = 1 #1 #2 #3 #5 #10
-    dim_between = 5 #3 #5
-    dim_M = 5 #3 #5 #6 #12
-    dim_U = 5 #3 #5 #10  # inactive for n_U_layers <= 1
-    n_M_layers = 1 #2
-    n_U_layers = 1 #2
+    n_GNN_layers = 2 #1 #2 #3 #5 #10
+    dim_between = 5 #2 #3 #5 #10
+    dim_M = 5 #2 #3 #5 #6 #10 #12
+    dim_U = 5 #2 #3 #5 #10  # inactive for n_U_layers <= 1
+    n_M_layers = 1 #1 #2
+    n_U_layers = 2 #1 #2
     activation_M = 'relu'  # see if-statements in layer.py, default: 'relu'
     #string options: 'softsign', 'softplus', 'elu', 'tanh', 'tanhshrink', 'soft_relu', 'skewed_identity', 'simple_elu'
     # virtual node
-    use_virtual_nodes = False  # True/False, inactive for n_GNN_layers <= 1
+    use_virtual_nodes = True  # True/False, inactive for n_GNN_layers <= 1
     n_virtual_layers = 1 #1 #2  # inactive for n_GNN_layers <= 1
     # MLP
-    n_MLP_layers = 1 #1 #2 #3
-    dim_MLP = 5 #3  # inactive for n_MLP_layers <= 1
+    n_MLP_layers = 2 #1 #2 #3
+    dim_MLP = 5 #2 #3 #5 #10 # inactive for n_MLP_layers <= 1
 
 
     ### Preparation
@@ -251,6 +251,6 @@ if __name__ == "__main__":
     parser.add_argument('-s', '--scatter', nargs='*', default=['sum', 'mean', 'max'],
                         help="list of predefined [scatter] aggregation types to be used for message passing in GNN model, called by their resp. names ['sum', 'mean', 'max'] (w/o quotes or brackets, separated by spaces only). If left empty, defaults to calling all of them once in the above order. Names not included will be skipped.")  # optional argument
 
-    args = parser.parse_args()  # parse from command line, # TODO remove argument b4 push
-    #'-s sum'.split()  #'-d Test'.split() #'-d Val Test -s sum'.split()  # for most straight-forward hpo: '-d Test -s sum'.split()
+    args = parser.parse_args()  # parse from command line
+    #'-s sum'.split()  #'-d Test'.split()  #'-d Val Test -s sum'.split()  #'-d Test -s sum'.split()
     main(args.datasets, args.scatter)  # run w/ parsed arguments
