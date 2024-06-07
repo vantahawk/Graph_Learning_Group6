@@ -116,12 +116,12 @@ sum:	 (0.1166774183511734, 0.30809709429740906, 0.3057083189487457)
 | SUM                   | 0.1166774183511734 | 0.30809709429740906 | 0.3057083189487457 |
 
 ## Discussion
+
 We used a BOHB HPO to optimize the hyperparameters, we first had problems achieving low errors, which lay in our bad choice for the dimension-spaces. They were just way to small, when we enlargened this and added more training regularization, error improved drastically.
 
 We still think there might be sth wrong, but are not quite sure.
 
-
-You can have a look at this beauty:
+BUT, You can have a look at this beauty:
 [wandb.ai/export](https://wandb.ai/gerlach/gnn_zinc/reports/Untitled-Report--Vmlldzo4MjQ5MTAw)
 
 ## Conclusion
