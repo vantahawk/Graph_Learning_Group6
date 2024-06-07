@@ -26,9 +26,9 @@ BATCH/CMDLine
 ```
 
 If you don't want to have the hassle of fixing all the bugs in current smac hpo:
-Just comment out the import statement, and the use of the hpt function. It might be that python does not complain, as long as you don't use the -hpo/--hpt option. 
+Just comment out the import statement, and the use of the hpt function. It might be that python does not complain, as long as you don't use the -hpo/--hpt option.
 ```python
-from src.hpo import hpt 
+from src.hpo import hpt
 # from src.hpo import hpt
 
 ...
@@ -60,6 +60,8 @@ or
 
 Training is always done on ZINC_Train. The same info can also be found with the `--help` or `-h` flag like so: `python main.py -h`
 
+EDIT: Argument parser was changed in Benedict's fork. See `--help`.
+
 Since scatter_sum often yielded the best results, it may suffice to run only that like so: `python main.py -s sum`
 
 The remaining exercises 1-5 are covered by the python files in `src`, where each file covers one exercise:
@@ -73,59 +75,68 @@ Model in `model.py`, parameters in `main.py` or `hpo.py`, respectively.
 
 ### Attributes & Parameters
 
-We used the optimizer 'Adam' and the l1-loss function. scatter_sum turned out to be the most promising aggregation type.
+We used the optimizer 'Adam' and the l1-loss function. As expected, scatter_sum turned out to be the most promising aggregation type.
 
 Parameter Values Used:
- - weight_decay (<class 'float'>): 2.38002958385e-05
- - use_virtual_nodes (<class 'int'>): 1
- - n_virtual_layers (<class 'int'>): 1
- - dim_U (<class 'int'>): 30
- - batch_size (<class 'int'>): 16
- - beta1 (<class 'float'>): 0.9027517490672556
- - beta2 (<class 'numpy.float64'>): 0.999
- - dim_M (<class 'int'>): 29
- - dim_MLP (<class 'int'>): 15
- - dim_between (<class 'int'>): 32
- - lr (<class 'float'>): 0.0065104040069957
- - lrsched (<class 'numpy.str_'>): cosine
- - m_nlin (<class 'numpy.str_'>): leaky_relu
- - mlp_nlin (<class 'numpy.str_'>): relu
- - n_GNN_layers (<class 'int'>): 5
- - n_MLP_layers (<class 'int'>): 1
- - n_M_layers (<class 'int'>): 1
- - n_U_layers (<class 'int'>): 3
- - n_epochs (<class 'int'>): 75
- - scatter_type (<class 'numpy.str_'>): sum
- - u_nlin (<class 'numpy.str_'>): relu
- - use_dropout (<class 'numpy.int64'>): 1
- - use_residual (<class 'numpy.int64'>): 0
- - use_skip (<class 'numpy.int64'>): 1
- - use_weight_decay (<class 'numpy.int64'>): 1
- - dropout_prob (<class 'float'>): 0.4619822213678156
+
+- Training
+    - batch_size (<class 'int'>): 16
+    - n_epochs (<class 'int'>): 75
+    - weight_decay (<class 'float'>): 2.38002958385e-05
+    - use_weight_decay (<class 'numpy.int64'>): 1
+    - beta1 (<class 'float'>): 0.9027517490672556
+    - beta2 (<class 'numpy.float64'>): 0.999
+- GNN
+    - scatter_type (<class 'numpy.str_'>): sum
+    - n_GNN_layers (<class 'int'>): 5
+    - dim_between (<class 'int'>): 32
+- Message function (M)
+    - n_M_layers (<class 'int'>): 1
+    - dim_M (<class 'int'>): 29
+    - m_nlin (<class 'numpy.str_'>): leaky_relu
+- Update function (U)
+    - n_U_layers (<class 'int'>): 3
+    - dim_U (<class 'int'>): 30
+    - u_nlin (<class 'numpy.str_'>): relu
+- Virtual Nodes (VN)
+    - use_virtual_nodes (<class 'int'>): 1
+    - n_virtual_layers (<class 'int'>): 1
+    - (activation fct.: relu)
+- (Post-Pooling) MLP
+    - n_MLP_layers (<class 'int'>): 1
+    - dim_MLP (<class 'int'>): 15
+    - mlp_nlin (<class 'numpy.str_'>): relu
+- Misc
+    - lr (<class 'float'>): 0.0065104040069957
+    - lrsched (<class 'numpy.str_'>): cosine
+    - use_dropout (<class 'numpy.int64'>): 1
+    - dropout_prob (<class 'float'>): 0.4619822213678156
+    - use_residual (<class 'numpy.int64'>): 0
+    - use_skip (<class 'numpy.int64'>): 1
 
 ### Results for Ex. 6
 
 Mean Absolute Error (rounded) on the ZINC datasets, for the chosen scatter operation type:
 
-| Scatter ↓ , Dataset → | Train      | Val        | Test       |
-| :-------------------- | :--------- | :--------- | :--------- |
-| SUM                   | 0.1166774183511734 | 0.30809709429740906 | 0.3057083189487457 |
+| Scatter ↓ , Dataset → | Train  | Val    | Test   |
+| :-------------------- | :----- | :----- | :----- |
+| SUM                   | 0.1167 | 0.3081 | 0.3057 |
 
 ## Discussion
 
 We used a BOHB HPO to optimize the hyperparameters, we first had problems achieving low errors, which lay in our bad choice for the dimension-spaces. They were just way to small, when we enlargened this and added more training regularization, error improved drastically.
 
-We still think there might be sth wrong, but are not quite sure.
+We still think there might be something wrong in the layer construction, but are not quite sure.
 
-BUT, You can have a look at this beauty:
+BUT, you can have a look at this beauty:
 [wandb.ai/export](https://wandb.ai/gerlach/gnn_zinc/reports/Untitled-Report--Vmlldzo4MjQ5MTAw)
 
 ## Conclusion
 
-As mentioned, we maybe have yet to find some error of construction somewhere, before we can hope to reach the target MAE.
+As mentioned, we maybe have yet to find some error of construction somewhere, and further experiment w/ much higher hidden dimensions for M, U & MLP, before we can hope to reach the target MAE.
 
 ---
 
 ### Note on Exercise Split
 
-In part due to difficult time constraints on both Benedict and Ahmet, David ended up providing most of the codebase (`david/sheet3`) this time around. Benedict greatly helped to further debug and refine the code, and ran a hyperparameter optimization over the parameters mentioned in the list above. Ahmet also made himself available for further improvements on the code.
+In part due to difficult time constraints on both Benedict and Ahmet, David ended up providing most of the codebase (`david/sheet3`) this time around. Benedict greatly helped to further debug and refine the code, and ran a hyperparameter optimization over the parameters mentioned in the list above. We ended up pushing most of his forked code (`benedict/sheet3`) to the `main` branch. Ahmet also made himself available for further improvements on the code.
