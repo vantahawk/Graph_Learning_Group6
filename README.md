@@ -54,7 +54,7 @@ or
 .../group6$ python main.py
 ```
 
-...runs the evaluation (Ex.6) on all 3 ZINC datasets ['Train', 'Val', 'Test'] and for all 3 scatter aggregation types ['sum', 'mean', 'max'] once in said orders (9 results total). Alternatively specific  scatter-types can be chosen by setting the resp. keywords as stated here as optional arguments;  scatter-types after flag `-s`, all separated by spaces. E.g. in order to evaluate ZINC_Val & ZINC_Test using scatter_max & scatter_sum, set:
+...runs the evaluation (Ex.6) on all 3 ZINC datasets ['Train', 'Val', 'Test'] and for the best of the 3 scatter aggregation types ['sum', 'mean', 'max']. To run other aggregations, scatter-types can be chosen by setting the resp. keywords as stated here as optional arguments;  scatter-types after flag `-s`, all separated by spaces. E.g. in order to evaluate ZINC_Val & ZINC_Test using scatter_max & scatter_sum, set:
 
 `python main.py -s max sum`
 
