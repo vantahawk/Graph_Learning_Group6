@@ -18,14 +18,17 @@ class GNN(Module):
     def __init__(self, scatter_type: str, use_virtual_nodes: bool,
                  n_MLP_layers: int, dim_MLP: int, n_virtual_layers: int,
                  n_GNN_layers: int, dim_between: int, dim_M: int, dim_U: int, n_M_layers: int, n_U_layers: int,
-                 dim_node: int = 21, dim_edge: int = 3, dim_graph: int = 1, mlp_nonlin:str="relu", m_nonlin:str="relu", u_nonlin:str="relu", skip:bool=True) -> None:
+                 dim_node: int = 21, dim_edge: int = 3, dim_graph: int = 1, mlp_nonlin:str="relu", m_nonlin:str="relu", u_nonlin:str="relu", skip:bool=True,residual:bool=True, dropbout_prob:float=0.0) -> None:
         super().__init__()
 
         self.n_GNN_hidden = n_GNN_layers - 1  # number of hidden GNN layers
         self.n_MLP_hidden = n_MLP_layers - 1  # number of hidden MLP layers
         #self.use_virtual_nodes = use_virtual_nodes  # whether to use (True) or bypass (False) all virtual nodes
 
-        self.GNN_input = GNN_Layer(scatter_type, dim_node, dim_edge, dim_M, dim_U, dim_between, n_M_layers, n_U_layers, m_nonlin=m_nonlin, u_nonlin=u_nonlin)  # input GNN layer
+        #dropout-layer
+        self.dropout = th.nn.Dropout(p=dropbout_prob)
+
+        self.GNN_input = GNN_Layer(scatter_type, dim_node, dim_edge, dim_M, dim_U, dim_between, n_M_layers, n_U_layers, m_nonlin=m_nonlin, u_nonlin=u_nonlin, residual=residual)  # input GNN layer
         """
         # list of hidden GNN layers, i.e. GNN layers after input GNN layer
         self.GNN_hidden = ModuleList([GNN_Layer(scatter_type, dim_between, dim_edge, dim_M, dim_U, dim_between, n_M_layers, n_U_layers)
@@ -42,10 +45,10 @@ class GNN(Module):
             GNN_hidden = []
             for layer in range(self.n_GNN_hidden):
                 GNN_hidden += [Virtual_Node(dim_between, n_virtual_layers),
-                               GNN_Layer(scatter_type, dim_between, dim_edge, dim_M, dim_U, dim_between, n_M_layers, n_U_layers, m_nonlin=m_nonlin, u_nonlin=u_nonlin)]
+                               GNN_Layer(scatter_type, dim_between, dim_edge, dim_M, dim_U, dim_between, n_M_layers, n_U_layers, m_nonlin=m_nonlin, u_nonlin=u_nonlin, residual=residual)]
             self.n_GNN_hidden *= 2  # double to account for added virtual nodes in forward fct.
         else:  # disable/bypass virtual nodes
-            GNN_hidden = [GNN_Layer(scatter_type, dim_between, dim_edge, dim_M, dim_U, dim_between, n_M_layers, n_U_layers, m_nonlin=m_nonlin, u_nonlin=u_nonlin)
+            GNN_hidden = [GNN_Layer(scatter_type, dim_between, dim_edge, dim_M, dim_U, dim_between, n_M_layers, n_U_layers, m_nonlin=m_nonlin, u_nonlin=u_nonlin, residual=residual)
                           for layer in range(self.n_GNN_hidden)]
         self.GNN_hidden = ModuleList(GNN_hidden)
 
@@ -83,6 +86,7 @@ class GNN(Module):
 
         # apply hidden GNN layers w/ optional virtual nodes (version w/o if-statement in forward fct.)
         for layer in range(self.n_GNN_hidden):
+            y = self.dropout(y)
             y = self.GNN_hidden[layer](y, edge_features, edge_idx, batch_idx)
             if self.skip:
                 y += skip_val

@@ -49,41 +49,48 @@ or
 
 We used the optimizer 'Adam' and the l1-loss function.
 
-- Training
-    - batch size:
-    - number of epochs:
-- GNN
-    - number of GNN layers:
-    - dimension between GNN layers:
-- Message function (M)
-    - number of M layers:
-    - hidden dimension of M:
-    - activation function of M layers:
-- Update function (U)
-    - number of U layers:
-    - hidden dimension of U:
-    - activation function of hidden U layers:
-- Virtual Nodes (VN)
-    - use virtual nodes: (Yes/No)
-    - number of VN-MLP layers:
-    - activation function of VN- MLP layers:
-- (Post-Pooling) MLP
-    - number of MLP layers:
-    - hidden dimension of MLP:
-    - activation function of hidden MLP layers:
+Parameter Values Used:
+ - weight_decay (<class 'float'>): 2.38002958385e-05
+ - use_virtual_nodes (<class 'int'>): 1
+ - n_virtual_layers (<class 'int'>): 1
+ - dim_U (<class 'int'>): 30
+ - batch_size (<class 'int'>): 16
+ - beta1 (<class 'float'>): 0.9027517490672556
+ - beta2 (<class 'numpy.float64'>): 0.999
+ - dim_M (<class 'int'>): 29
+ - dim_MLP (<class 'int'>): 15
+ - dim_between (<class 'int'>): 32
+ - lr (<class 'float'>): 0.0065104040069957
+ - lrsched (<class 'numpy.str_'>): cosine
+ - m_nlin (<class 'numpy.str_'>): leaky_relu
+ - mlp_nlin (<class 'numpy.str_'>): relu
+ - n_GNN_layers (<class 'int'>): 5
+ - n_MLP_layers (<class 'int'>): 1
+ - n_M_layers (<class 'int'>): 1
+ - n_U_layers (<class 'int'>): 3
+ - n_epochs (<class 'int'>): 75
+ - scatter_type (<class 'numpy.str_'>): sum
+ - u_nlin (<class 'numpy.str_'>): relu
+ - use_dropout (<class 'numpy.int64'>): 1
+ - use_residual (<class 'numpy.int64'>): 0
+ - use_skip (<class 'numpy.int64'>): 1
+ - use_weight_decay (<class 'numpy.int64'>): 1
+ - dropout_prob (<class 'float'>): 0.4619822213678156
 
 ### Results for Ex. 6
 
-Mean Absolute Error (rounded) on the ZINC datasets, for each scatter operation type:
+Mean Absolute Error (rounded) on the ZINC datasets, for the chosen scatter operation type:
+
+Scatter ↓
+sum:	 (0.1166774183511734, 0.30809709429740906, 0.3057083189487457)
+
 
 | Scatter ↓ , Dataset → | Train      | Val        | Test       |
 | :-------------------- | :--------- | :--------- | :--------- |
-| SUM                   |  |  |  |
-| MEAN                  |  |  |  |
-| MAX                   |  |  |  |
+| SUM                   | 0.1166774183511734 | 0.30809709429740906 | 0.3057083189487457 |
 
 ## Discussion
-
+We used a BOHB HPO to optimize the hyperparameters, we firsdt had problems achieving low errors, which lay in our bad choice for the dimension-spaces. They were just way to small.
 
 
 ## Conclusion

@@ -108,27 +108,27 @@ class optObject:
         param_space:ConfigurationSpace = ConfigurationSpace()
         #hyperparameters
         n_GNN_layers = Integer(name="n_GNN_layers", bounds=(1,20), default=5)
-        dim_between = Integer(name="dim_between", bounds=(3, 9), default=3) #bounds=(3, 9)
-        dim_M = Integer(name="dim_M", bounds=(3, 15), default=3)#bounds=(3, 15)
-        dim_U = Integer(name="dim_U", bounds=(3, 15), default=3)#bounds=(3, 15)
-        n_M_layers = Integer(name="n_M_layers", bounds=(1, 5), default=1)
-        n_U_layers = Integer(name="n_U_layers", bounds=(1, 5), default=1)
+        dim_between = Integer(name="dim_between", bounds=(30, 500), default=100, log=True) #bounds=(3, 9)
+        dim_M = Integer(name="dim_M", bounds=(30, 500), default=100, log=True)#bounds=(3, 15)
+        dim_U = Integer(name="dim_U", bounds=(30, 500), default=100, log=True)#bounds=(3, 15)
         n_MLP_layers = Integer(name="n_MLP_layers", bounds=(1, 3), default=1)
-        dim_MLP = Integer(name="dim_MLP", bounds=(3, 8), default=5) #bounds=(3, 8)
+        dim_MLP = Integer(name="dim_MLP", bounds=(10, 100), default=20, log=True) #bounds=(3, 8)
         # dim_MLP = Categorical(name="dim_MLP", items=[3], default=3) 
-        n_M_layers = Integer(name="n_M_layers", bounds=(1, 5), default=1)
-        n_U_layers = Integer(name="n_U_layers", bounds=(1, 5), default=1)
+        n_M_layers = Integer(name="n_M_layers", bounds=(1, 3), default=1)
+        n_U_layers = Integer(name="n_U_layers", bounds=(1, 3), default=1)
 
         use_virtual_nodes = Categorical(name="use_virtual_nodes", items=[0,1], default=1) #items=[1, 0]
         n_virtual_layers = Integer(name="n_virtual_layers", bounds=(1, 3), default=1)
         use_skip = Categorical(name="use_skip", items=[0,1], default=1)
+        use_residual = Categorical(name="use_residual", items=[0,1], default=1)
+        dropout_prob = Float(name="dropout_prob", bounds=(0.0, 0.5), default=0.5)
+        use_dropout = Categorical(name="use_dropout", items=[1, 0], default=1)
         
-        batch_size = Integer(name="batch_size", bounds=(10, 1000), default=10, log=True)
-
         mlp_nlin = Categorical(name="mlp_nlin", items=list(activation_function.keys()), default='relu')
-        m_nlin = Categorical(name="m_nlin", items=list(activation_function.keys()), default='relu')
+        m_nlin = Categorical(name="m_nlin", items=list(activation_function.keys()), default='leaky_relu')
         u_nlin = Categorical(name="u_nlin", items=list(activation_function.keys()), default='relu')
 
+        batch_size = Integer(name="batch_size", bounds=(10, 1000), default=10, log=True)
         n_epochs = Integer(name="n_epochs", bounds=(20, 100), default=30) # bounds=(20,100)
         lr = Float(name="lr", bounds=(0.00001, 0.01), default=0.001, log=True) #bounds=(1e-05, 1e-02)
         lrsched = Categorical(name="lrsched", items=["cosine", "cyclic"], default="cosine")
@@ -145,9 +145,9 @@ class optObject:
         use_vn = EqualsCondition(child=use_virtual_nodes, parent=n_GNN_layers, value=2)
         use_vn2 = EqualsCondition(child=n_virtual_layers, parent=use_virtual_nodes, value=1)
         use_du = GreaterThanCondition(child=dim_U, parent=n_U_layers, value=1)
-        use_dm = GreaterThanCondition(child=dim_M, parent=n_M_layers, value=1)
-        param_space.add(n_GNN_layers, dim_between, dim_M, dim_U, n_M_layers, n_U_layers, use_virtual_nodes, n_virtual_layers, n_MLP_layers, dim_MLP, batch_size, n_epochs, lr, beta1, beta2, weight_decay, use_weight_decay, scatter_type, use_skip,lrsched, mlp_nlin, m_nlin, u_nlin,
-            use_wd, use_vn, use_vn2, use_du)
+        use_dp = EqualsCondition(child=dropout_prob, parent=use_dropout, value=1)
+        param_space.add(n_GNN_layers, dim_between, dim_M, dim_U, n_M_layers, n_U_layers, use_virtual_nodes, n_virtual_layers, n_MLP_layers, dim_MLP, batch_size, n_epochs, lr, beta1, beta2, weight_decay, use_weight_decay, scatter_type, use_skip,lrsched, mlp_nlin, m_nlin, u_nlin, use_residual, dropout_prob, use_dropout,
+            use_wd, use_vn, use_vn2, use_du, use_dp)
 
         return param_space
 
@@ -183,7 +183,9 @@ class optObject:
             mlp_nonlin=config["mlp_nlin"],
             m_nonlin=config["m_nlin"],
             u_nonlin=config["u_nlin"],
-            skip=config["use_skip"]
+            skip=config["use_skip"],
+            residual=config["use_residual"],
+            dropbout_prob=config.get("dropout_prob", 0.0) #if not use_dropout then 0.0 <- larger space that does not use dropout.
         )
 
         # if th.cuda.is_available() and th.cuda.device_count() > 1:
@@ -193,16 +195,14 @@ class optObject:
         
 
         # construct optimizer
-        optimizer = Adam(model.parameters(), lr=config["lr"], betas=(config["beta1"], config["beta2"]), weight_decay=config["weight_decay"] if config["use_weight_decay"] else 0.0)  # TODO try diff. optimizers, parameters to be investigated, tested, chosen...
+        optimizer = Adam(model.parameters(), lr=config["lr"], betas=(config["beta1"], config["beta2"]), weight_decay=config["weight_decay"] if config["use_weight_decay"] else 0.0) 
+
         warm_up_epoch = config["n_epochs"]//10
         schedulerSlow = th.optim.lr_scheduler.LinearLR(optimizer, start_factor=0.1, end_factor=1.0, total_iters=warm_up_epoch)
         if config["lrsched"] == "cosine":
             hpscheduler = th.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100-warm_up_epoch, eta_min=1e-6)
         else:
             hpscheduler = th.optim.lr_scheduler.CyclicLR(optimizer, base_lr=config["lr"], max_lr=config["lr"]*5, step_size_up=2000, mode='triangular2', last_epoch=100)
-        # schedulerCyc = th.optim.lr_scheduler.CyclicLR(optimizer, base_lr=config["lr"], max_lr=config["lr"]*5, step_size_up=2000, mode='triangular2')
-
-        # seq_scheduler = th.optim.lr_scheduler.SequentialLR(optimizer, [schedulerSlow, schedulerCos, schedulerCyc], [warm_up_epoch, config["n_epochs"]//2], 1)
         plat_scheduler = th.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5, threshold=0.0001, threshold_mode='rel', cooldown=1, min_lr=0, eps=1e-08, verbose=False)
         seq_scheduler = th.optim.lr_scheduler.SequentialLR(optimizer, [schedulerSlow, hpscheduler], [warm_up_epoch], config["n_epochs"])
 
@@ -276,7 +276,7 @@ def hpt(device) -> Dict[str, Any]:
     # setup the hyperparameter optimization scenario
     scenario = Scenario(
         configspace=gnn_opt.configspace,
-        n_trials = 200,
+        n_trials = 50,
         n_workers=1,
         trial_walltime_limit=30*60,
         min_budget = 1000,

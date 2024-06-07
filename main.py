@@ -44,11 +44,11 @@ def main(datasets: list[str], scatter: list[str], hpo:bool=False) -> None:
     if hpo:
         print("Using Hyperparameter Optimization using Smac. This may take a while.")
         from src.hpo import hpt
-        param_default = { #these may not be in the configspace, thus we need to add them manually
+        param_default = { #these may not be in the configspace, thus we need to add them manually, if they are not they are not used, but still need be specified
             "weight_decay": 1e-06,
             "use_virtual_nodes": 1,
             "n_virtual_layers": 1,
-            "dim_U": 3,
+            "dim_U": 30,
         }
         param_default |= hpt(device)
         scatter_type_list = [param_default["scatter_type"]]
@@ -65,26 +65,34 @@ def main(datasets: list[str], scatter: list[str], hpo:bool=False) -> None:
             print("Using mean as scatter operation.")
                 
             scatter_type_list = ["mean"]
-            
+        
         param_default:Dict[str, Any] = {
-            "n_GNN_layers": 1,
-            "dim_between": 3,
-            "dim_M": 3,
-            "dim_U": 3, # inactive for n_U_layers <= 1
-            "n_M_layers": 1,
-            "n_U_layers": 1,
-            "use_virtual_nodes": True, # inactive for n_GNN_layers <= 1
-            "n_virtual_layers": 1,
-            "n_MLP_layers": 1,
-            "dim_MLP": 3, # inactive for n_MLP_layers <= 1
-            "batch_size": 10, # 10 seems promising, 100 still okay, smaller/larger may take longer
-            "n_epochs": 20, 
-            "lr": 0.001,
-            "beta1": 0.9,
+            "batch_norm": 16,
+            "beta1": 0.9028,
             "beta2": 0.999,
-            "weight_decay": 0.0,
-            "use_weight_decay" : False,
-            "scatter_type":"mean"
+            "dim_M": 29,
+            "dim_MLP": 15,
+            "dim_U": 30,
+            "dim_between": 32,
+            "dropout_prob": 0.462,
+            "lr":0.00651,
+            "lrsched": "cosine",
+            "m_nlin": "leaky_relu",
+            "mlp_nlin": "relu",
+            "n_GNN_layers": 5,
+            "n_M_layers": 1,
+            "n_MLP_layers": 1,
+            "n_U_layers": 3,
+            "n_epochs": 75,
+            "n_virtual_layers": 1,
+            "scatter_type": "sum",
+            "u_nlin": "relu",
+            "use_dropout": 1,
+            "use_residual": 0,
+            "use_skip": 1,
+            "use_virtual_nodes": 1,
+            "use_weight_decay": 1,
+            "weight_decay": 0.0000238
         }
     
     ### Preparation
@@ -93,6 +101,12 @@ def main(datasets: list[str], scatter: list[str], hpo:bool=False) -> None:
         graphs = pickle.load(data)
     # preprocess ZINC_Train using our [Custom_Dataset] & then collate it into shuffled batch graphs using our [custom_collate] fct.
     train_loader = DataLoader(Custom_Dataset(graphs), batch_size=param_default["batch_size"], shuffle=True, collate_fn=custom_collate)
+
+
+    with open('datasets/ZINC_Val/data.pkl', 'rb') as data:
+        val_graphs = pickle.load(data)
+    # preprocess ZINC_Train using our [Custom_Dataset] & then collate it into shuffled batch graphs using our [custom_collate] fct.
+    val_loader = DataLoader(Custom_Dataset(val_graphs), batch_size=len(val_graphs), shuffle=True, collate_fn=custom_collate)
 
     with open('datasets/ZINC_Test/data.pkl', 'rb') as data:
         test_graphs = pickle.load(data)
@@ -121,7 +135,9 @@ def main(datasets: list[str], scatter: list[str], hpo:bool=False) -> None:
             mlp_nonlin=param_default["mlp_nlin"],
             m_nonlin=param_default["m_nlin"],
             u_nonlin=param_default["u_nlin"],
-            skip=param_default["use_skip"]
+            skip=param_default["use_skip"],
+            residual=param_default["use_residual"],
+            dropbout_prob=param_default.get("dropout_prob", 0.0)
         )
 
         # if th.cuda.is_available() and th.cuda.device_count() > 1:
@@ -132,7 +148,7 @@ def main(datasets: list[str], scatter: list[str], hpo:bool=False) -> None:
 
         # construct optimizer
         optimizer = Adam(model.parameters(), lr=param_default["lr"], betas=(param_default["beta1"], param_default["beta2"]), weight_decay=param_default["weight_decay"] if param_default["use_weight_decay"] else 0.0)  # TODO try diff. optimizers, parameters to be investigated, tested, chosen...
-        
+
         warm_up_epoch = param_default["n_epochs"]//10
         schedulerSlow = th.optim.lr_scheduler.LinearLR(optimizer, start_factor=0.1, end_factor=1.0, total_iters=warm_up_epoch)
         if param_default["lrsched"] == "cosine":
@@ -225,9 +241,6 @@ def main(datasets: list[str], scatter: list[str], hpo:bool=False) -> None:
 if __name__ == "__main__":
     # configure parser
     parser = argparse.ArgumentParser(usage="%(prog)s [options]", description="Run GNN model on ZINC datasets for graph tasks.")  # create parser object
-
-    parser.add_argument('-d', '--datasets', nargs='*', default=['Train', 'Val', 'Test'],
-                        help="DEPRECATED! list of predefined ZINC_[datasets] to be called by their resp. names ['Train', 'Val', 'Test'] (w/o quotes or brackets, separated by spaces only). Runs evaluation (Ex.6) of each called dataset. If left empty, defaults to calling all of them once in the above order. Names not included will be skipped. Training is always done on ZINC_Train.")  # optional argument
 
     parser.add_argument('-s', '--scatter', nargs='*', default=['sum', 'mean', 'max'],
                         help="list of predefined [scatter] operation types to be used for message passing in GNN model, called by their resp. names ['sum', 'mean', 'max'] (w/o quotes or brackets, separated by spaces only). If left empty, defaults to calling all of them once in the above order. Names not included will be skipped.")  # optional argument
