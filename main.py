@@ -8,7 +8,7 @@ import pickle
 import os
 #from sklearn.metrics import mean_absolute_error
 #from sympy import Line
-from sympy import use
+#from sympy import use
 import torch as th
 from torch.nn import Linear, Module, ModuleList
 import torch.nn.functional as F
@@ -31,7 +31,7 @@ from src.model import GNN
 def main(datasets: list[str], scatter: list[str], hpo:bool=False) -> None:
     # TODO finish evaluation...
     '''for each parsed [scatter_type]: create model & optimizer object, send everything necessary to [device], train on ZINC_Train & evaluate on every (parsed) [datasets] in several epochs, return mean absolute error (MAE) on every (parsed) dataset'''
-
+    # device might need to be set explicitly, usually works fine on 'cpu' at least...
     #device = 'cpu'
     #device = 'cuda'
     #will use all available GPUs
@@ -118,7 +118,7 @@ def main(datasets: list[str], scatter: list[str], hpo:bool=False) -> None:
     ### Run Model
     MAE_table = []
     for scatter_type in scatter_type_list:  # run thru list of valid scatter-types
-        print(f"\n\nScatter-Type: {scatter_type}")
+        print(f"\n\nScatter-Type: {scatter_type}", end="")
 
         # construct GNN model of given [scatter_type]
         model = GNN(scatter_type, 

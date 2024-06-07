@@ -26,8 +26,8 @@ def skewed_identity(x: th.Tensor) -> th.Tensor:
 
 def simple_elu(x: th.Tensor) -> th.Tensor:
     '''custom activation fct. as simple, non-linear, twice cont. diff.able alternative to ReLU & ELU, similar to Softplus (shifted down)'''
-    #return th.mul(x, F.softsign(x) + 1) / 2  # all op.s elem.wise, formula: x * (1 + x / (1 + |x|)) / 2
-    return th.mul(x, F.softsign(x) + 1)  # scaled, formula: x * (1 + x / (1 + |x|))
+    return th.mul(x, F.softsign(x) + 1) / 2  # all op.s elem.wise, formula: x * (1 + x / (1 + |x|)) / 2
+    #return th.mul(x, F.softsign(x) + 1)  # scaled, formula: x * (1 + x / (1 + |x|))
     #return th.mul(x, F.softsign(x) + 1) / 2 + 0.5  # shifted up, formula: (1 + x * (1 + x / (1 + |x|))) / 2
 
 activation_function = {

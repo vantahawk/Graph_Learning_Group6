@@ -39,7 +39,7 @@ class Custom_Dataset(Dataset):
         self.node_features = [th.tensor(np.array([one_hot_encoder(node[1]['node_label'], 21)
                                                   for node in graph.nodes(data=True)]), dtype=th.float)
                               for graph in graphs]  # one-hot encoded
-        #self.node_features = [th.tensor(np.array([node[1]['node_label']
+        #self.node_features = [th.tensor(np.array([[node[1]['node_label']]
         #                                          for node in graph.nodes(data=True)])).type(th.float)
         #                      for graph in graphs]  # *not* one-hot encoded
 

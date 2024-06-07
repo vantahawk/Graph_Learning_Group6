@@ -1,4 +1,3 @@
-# external imports
 import torch as th
 from torch.nn import Linear, Module, ModuleList
 import torch.nn.functional as F
@@ -21,6 +20,6 @@ class Virtual_Node(Module):
 
         for layer in range(self.n_virtual_layers):  # apply MLP of virtual node
             y = self.virtual_MLP[layer](y)
-            y = F.relu(y)  # TODO optional?, different activation fct.?
+            y = F.relu(y)
 
         return x + y[batch_idx]  # expand graph-lvl embedding back to node-lvl w/ batch_idx & add it to original input
