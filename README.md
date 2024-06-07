@@ -26,7 +26,7 @@ BATCH/CMDLine
 ```
 
 If you don't want to have the hassle of fixing all the bugs in current smac hpo:
-Just comment out the import statement, and the use of the hpt function.
+Just comment out the import statement, and the use of the hpt function. It might be that python does not complain, as long as you don't use the -hpo/--hpt option. 
 ```python
 from src.hpo import hpt 
 # from src.hpo import hpt
