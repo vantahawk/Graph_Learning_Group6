@@ -1,0 +1,32 @@
+aenum
+argparse
+#ast
+#collections
+#ConfigSpace  # for hpo.py, install issues...
+#importlib
+#inspect
+#math
+matplotlib
+more_itertools  # for hpo.py
+networkx
+numba
+#numbers
+numpy
+#os
+pandas
+#pickle
+protobuf
+psutil
+pytorch-lightning
+scikit-learn
+scipy
+#smac  # for hpo.py, install issues?
+#sympy
+#sys
+torch
+#torch-scatter  # has to be installed separately via: ...> pip install torch-scatter -f https://data.pyg.org/whl/torch-2.3.0+${CUDA}.html with '${CUDA}' = 'cpu', 'cu118' or 'cu121' depending on PyTorch installation (usually 'cpu')
+torchvision
+#torchaudio
+tqdm
+typing  # optional?
+wandb  # for hpo.py

@@ -1,4 +1,4 @@
-# Explanation and Setup for the Code of Group 6 for Sheet 3
+# Explanation and Setup for the Code of Group 6 for Sheet 4
 
 ## Requirements
 
@@ -27,7 +27,7 @@ BATCH/CMDLine
 
 ## How to run
 
-How to run code for Ex.6:
+How to run code for Ex.3 & 4:
 
 ```batch
 ::ON WINDOWS cmdline
@@ -40,6 +40,8 @@ or
 # ON LINUX
 .../group6$ python main.py
 ```
+
+TODO (update & finish readme)
 
 ...runs the evaluation (Ex.6) on all 3 ZINC datasets ['Train', 'Val', 'Test'] and for all 3 scatter aggregation types ['sum', 'mean', 'max'] once in said orders (9 results total). Alternatively specific datasets and/or scatter-types can be chosen by setting the resp. keywords as stated here as optional arguments; datasets after flag `-d` and scatter-types after flag `-s`, all separated by spaces. E.g. in order to evaluate ZINC_Val & ZINC_Test using scatter_max & scatter_sum, set:
 
