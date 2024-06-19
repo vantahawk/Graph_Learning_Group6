@@ -76,18 +76,18 @@ class RW_Iterable(IterableDataset):
         #self.start = 0
         #self.end = batch_size
 
-    def rw_wrapper(self, n_nodes:int, adj_shape, l, l_ns, p, q, seed:int=None)->np.ndarray:
-        """Wrapper function for random_walk to make the seed more random by incorporating the current time."""
-        return self.random_walk(n_nodes, adj_shape, l, l_ns, p, q, seed=seed+int(time.time()*1000))
+    # don't use bc makes batches different
+    # def rw_wrapper(self, n_nodes:int, adj_shape, l, l_ns, p, q, seed:int=None)->np.ndarray:
+    #     """Wrapper function for random_walk to make the seed more random by incorporating the current time."""
+    #     return self.random_walk(n_nodes, adj_shape, l, l_ns, p, q, seed=seed+int(time.time()*1000))
     
     def rw_batch(self) -> list[np.ndarray]:
         '''returns batch (list) of pq-walk data, each including: random start node, followed by l nodes of random pq-walk, followed by l_ns negative samples, concatenated into 1D-np.ndarray'''
-        batch = []  # collect pq-walk data arrays in list
         
         #submit tasks to the pool
         global worker_pool
         b = self.batch_size
-        return worker_pool.starmap(self.rw_wrapper, zip(repeat(self.n_nodes,b), repeat(self.adj_shape,b), repeat(self.l,b), repeat(self.l_ns,b), repeat(self.p,b), repeat(self.q,b), range(self.batch_size)))
+        return worker_pool.starmap(self.random_walk, zip(repeat(self.n_nodes,b), repeat(self.adj_shape,b), repeat(self.l,b), repeat(self.l_ns,b), repeat(self.p,b), repeat(self.q,b), range(self.batch_size)))
         
     @staticmethod
     def random_walk(n_nodes:int, adj_shape, l, l_ns, p, q, seed:int)->np.ndarray:
@@ -115,9 +115,12 @@ class RW_Iterable(IterableDataset):
         start_nbh = adj_mat[last]  # neighborhood of start node repres. as resp. row of adjacency matrix
         # current node, initially the 2nd node of pq-walk, uniformly sampled from neighborhood of start node
         current = rng.choice(n_nodes, size=None, replace=True, p = start_nbh / np.sum(start_nbh), axis=0, shuffle=True)
-        pq_walk = [last, current]  # collect sampled nodes of pq-walk in list
 
-        for step in range(l - 1):  # sample the l-1 next nodes in pq-walk using algebraic construction of alpha (see def. in script/sheet)
+        pq_walk = np.zeros((l,), dtype=np.int32)
+        pq_walk[0] = last
+        pq_walk[1] = current
+
+        for step in range(2,l):  # sample the l-1 next nodes in pq-walk using algebraic construction of alpha (see def. in script/sheet)
             current_nbh = adj_mat[current]  # neighborhood of current node repres. as its adj.mat.row
             # common neighborhood of last & current node, repres. as elem-wise product of resp. adj.mat.rows, accounts for 2nd row in def. of alpha
             common_nbh = np.multiply(adj_mat[last], current_nbh)
@@ -127,23 +130,27 @@ class RW_Iterable(IterableDataset):
 
             # sample next node in pq-walk according to norm.ed alpha (discrete probab. over all nodes)
             next = rng.choice(n_nodes, size=None, replace=True, p = alpha / np.sum(alpha), axis=0, shuffle=True)
-            pq_walk.append(next)
+            pq_walk[step] = next
 
             # update last & current node
             last = current
             current = next
 
-        rest_nodes = list(set(range(n_nodes)).difference(set(pq_walk)))  # remaining nodes after drawn pq-walk
+        rest_nodes = np.arange(n_nodes)  # remaining nodes after drawn pq-walk
+        rest_nodes = np.delete(rest_nodes, pq_walk)  # remove nodes already in pq-walk
         # negative samples (np.ndarray) uniformly drawn from remaining nodes
-        neg_samples = rng.choice(rest_nodes, size=l_ns, replace=False, p=None, axis=0, shuffle=False)  # w/o repetition
+        neg_samples = rng.choice(rest_nodes, size=l_ns, replace=False, axis=0, shuffle=False)  # w/o repetition
         #neg_samples = self.rng.choice(rest_nodes, size=self.l_ns, replace=True, p=None, axis=0, shuffle=False)  # w/ repetition
 
         #batch.append(th.tensor(np.concatenate([np.array(pq_walk), neg_samples], axis=-1)))
-        return np.concatenate([np.array(pq_walk), neg_samples], axis=-1)  # gets cast to th.tensor by dataloader
+        return np.concatenate([pq_walk, neg_samples], axis=-1)  # gets cast to th.tensor by dataloader
 
     def __iter__(self) -> Iterator[np.ndarray]:
-        '''returns iterator of pq-walk data, single-process: runs slow, unreliable or unintended otherwise...'''
+        '''returns iterator of pq-walk data'''
         return iter(self.rw_batch())
+
+    def get(self)->np.ndarray:
+        return np.array(self.rw_batch())
 
 
 

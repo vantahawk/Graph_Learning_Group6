@@ -13,6 +13,7 @@ numba
 #numbers
 numpy
 #os
+optuna # for hpo
 pandas
 #pickle
 protobuf
