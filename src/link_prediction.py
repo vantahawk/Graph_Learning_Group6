@@ -1,9 +1,8 @@
 import networkx as nx
 import numpy as np
-import torch as th
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score, accuracy_score
-from node_2_vec import Node2Vec, train_node2vec
+from node_2_vec import train_node2vec
 from random_walker import RW_Iterable
 import random
 import pickle
