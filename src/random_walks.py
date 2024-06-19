@@ -6,38 +6,44 @@ from torch.utils.data import IterableDataset#, get_worker_info
 from typing import Iterator
 
 
-
+"""
 def one_hot_encoder(label: int, length: int) -> np.ndarray:
     '''returns one-hot vector according to given label integer and length'''
     zero_vector = np.zeros(length)
     zero_vector[label] = 1
     return zero_vector
-
+"""
 
 
 class RW_Iterable(IterableDataset):
     '''implements custom iterable dataset for random [pq]-walks of length l over given [graph], together w/ [l_ns] negative samples'''
-    def __init__(self, graph: nx.Graph, p: float, q: float, l: int, l_ns: int, batch_size: int) -> None:
+    def __init__(self, graph: nx.Graph, p: float, q: float, l: int, l_ns: int,  # main parameters, see sheet
+                 batch_size: int, set_node_labels: bool) -> None:  # extra parameters
         super().__init__()
 
         # main graph attributes
-        self.graph = graph  # full nx.Graph
+        #self.graph = graph  # full nx.Graph
         self.adj_mat = nx.adjacency_matrix(graph).toarray()  # int32-np.ndarray
         #self.adj_mat = th.tensor(nx.adjacency_matrix(graph).toarray())  # int32-th.tensor
         self.n_nodes = nx.number_of_nodes(graph)
-        self.n_edges = nx.number_of_edges(graph)  # optional?
 
-        self.node_labels = [node[1]['node_label'] for node in graph.nodes(data=True)]  # int-list, fails for Facebook, idk why, not needed tho
-        # one-hot-encoded [node_labels], n_nodes x label_range
-        self.min_label = min(self.node_labels)
-        self.label_range = max(self.node_labels) - self.min_label + 1
-        self.node_labels_one_hot = np.array([one_hot_encoder(label - self.min_label, self.label_range) for label in self.node_labels])
-        #self.node_labels_one_hot = th.tensor(self.node_labels_one_hot)  #th.tensor
-
-        self.nodes_start = [edge[0] - 1 for edge in graph.edges(data=True)]  # subtract 1 to account for node count starting at zero
-        self.nodes_end = [edge[1] - 1 for edge in graph.edges(data=True)]
-        self.edges = [self.nodes_start, self.nodes_end]  # int-list, 2 x n_edges
-        #self.edges = th.tensor(self.edges)  # th.tensor
+        if set_node_labels:  # for node classification (Ex.3)
+            self.node_labels = [node[1]['node_label'] for node in graph.nodes(data=True)]  # int-list, fails for Facebook, idk why, not needed tho
+            self.node_labels = np.array(self.node_labels)  # np.ndarray
+            """
+            # one-hot-encoded [node_labels], n_nodes x label_range, neither workable nor necessary for logistic regression in sklearn
+            self.min_label = min(self.node_labels)
+            self.label_range = max(self.node_labels) - self.min_label + 1
+            self.node_labels_one_hot = np.array([one_hot_encoder(label - self.min_label, self.label_range) for label in self.node_labels])
+            #self.node_labels_one_hot = th.tensor(self.node_labels_one_hot)  #th.tensor
+            """
+        else:  # only set edges instead, for link prediction (Ex.4)
+            self.n_edges = nx.number_of_edges(graph)
+            self.nodes_start = [edge[0] - 1 for edge in graph.edges(data=True)]  # subtract 1 to account for node count starting at zero
+            self.nodes_end = [edge[1] - 1 for edge in graph.edges(data=True)]
+            self.edges = [self.nodes_start, self.nodes_end]  # int-list, 2 x n_edges
+            #self.edges = np.array(self.edges)  # np.ndarray
+            #self.edges = th.tensor(self.edges)  # th.tensor
 
         # attributes for random walk generation
         self.rng = default_rng(seed=None)  # default RNG object for general random sampling
@@ -80,8 +86,10 @@ class RW_Iterable(IterableDataset):
                 last = current
                 current = next
 
-            # negative samples (np.ndarray) uniformly drawn from remaining nodes w/o repetition
-            neg_samples = self.rng.choice(list(set(range(self.n_nodes)).difference(set(pq_walk))), size=self.l_ns, replace=False, p=None, axis=0, shuffle=False)
+            rest_nodes = list(set(range(self.n_nodes)).difference(set(pq_walk)))  # remaining nodes after drawn pq-walk
+            # negative samples (np.ndarray) uniformly drawn from remaining nodes
+            neg_samples = self.rng.choice(rest_nodes, size=self.l_ns, replace=False, p=None, axis=0, shuffle=False)  # w/o repetition
+            #neg_samples = self.rng.choice(rest_nodes, size=self.l_ns, replace=True, p=None, axis=0, shuffle=False)  # w/ repetition
 
             #batch.append(th.tensor(np.concatenate([np.array(pq_walk), neg_samples], axis=-1)))
             batch.append(np.concatenate([np.array(pq_walk), neg_samples], axis=-1))  # gets cast to th.tensor by dataloader
@@ -113,16 +121,16 @@ if __name__ == "__main__":
         #ds.start = overall_start + worker_id * per_worker
         ds.end = min(ds.start + per_worker, overall_end)
     """
+    n_workers = 2 #cpu_count(logical=True)
+    batch_size =  5 #3 * n_workers
+
     with open('datasets/Citeseer/data.pkl', 'rb') as data:
     #with open('datasets/Cora/data.pkl', 'rb') as data:
     #with open('datasets/Facebook/data.pkl', 'rb') as data:  # cannot construct self.node_labels for Facebook, idk why, not needed tho
     #with open('datasets/PPI/data.pkl', 'rb') as data:
-        graphs = pickle.load(data)
-    graph = graphs[0]
+        graph = pickle.load(data)[0]
 
-    n_workers = 2 #cpu_count(logical=True)
-    batch_size =  5 #3 * n_workers
-    dataset = RW_Iterable(graph, p=0.5, q=0.5, l=5, l_ns=5, batch_size=batch_size)  # custom iterable dataset instance
+    dataset = RW_Iterable(graph, p=1.0, q=1.0, l=5, l_ns=5, batch_size=batch_size, set_node_labels=False)  # custom iterable dataset instance
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=0)  # turns random walk batches into th.tensors, single-process w/ renewing randomness
 
     # multi-process part removed
