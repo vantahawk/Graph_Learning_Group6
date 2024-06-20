@@ -53,17 +53,37 @@ def hpo(graph: nx.Graph, n_trials: int = 100, device:str="cpu"):
 
     def objective(trial):
         # define search space for hyperparameters
-        dim = trial.suggest_int("dim", 8, 256, log=True) #categorical, choose some discrete values
-        p = trial.suggest_categorical("p", [0.1, 1]) 
+
+        #GENERAL SEARCH
+        # dim = trial.suggest_int("dim", 8, 256, log=True) #categorical, choose some discrete values
+        # p = trial.suggest_categorical("p", [0.1, 1]) 
+        # q = trial.suggest_categorical("q", [0.1, 1])
+        # l = trial.suggest_int("l", 20, 200, log=True)
+        # l_ns = trial.suggest_int("l_ns", 20, 2000, log=True)
+        # batch_size = trial.suggest_int("batch_size", 10, 1000, log=True)
+
+        # n_epochs = trial.suggest_int("n_epochs", 50, 500, log=True)
+
+        # lr = trial.suggest_float("lr", 1e-5, 1e-1, log=True)  # log scale
+        # sched = trial.suggest_categorical("sched", ["constant", "linear", "cosine", "step", "plateau"])  # categorical
+        # delta = trial.suggest_float("delta", 1e-5, 1e-1, log=True)  # log scale
+
+        # C = trial.suggest_float("C", 1e-2, 1e2, log=True)  # log scale
+
+        #OPTIMIZED SEARCH
+        dim = trial.suggest_int("dim", 128, 256, log=True) #categorical, choose some discrete values
+        p = trial.suggest_categorical("p", [0.1, 1])
         q = trial.suggest_categorical("q", [0.1, 1])
-        l = trial.suggest_int("l", 20, 200, log=True)
-        l_ns = trial.suggest_int("l_ns", 20, 2000, log=True)
-        batch_size = trial.suggest_int("batch_size", 10, 1000, log=True)
+        l = trial.suggest_int("l", 50, 150, log=True)
+        l_ns = trial.suggest_int("l_ns", 10, 100, log=True)
+        batch_size = trial.suggest_int("batch_size", 500, 1000, log=True)
 
-        lr = trial.suggest_float("lr", 1e-5, 1e-1, log=True)  # log scale
-        delta = trial.suggest_float("delta", 1e-5, 1e-1, log=True)  # log scale
+        n_epochs = trial.suggest_int("n_epochs", 200, 500, log=True)
+        lr = trial.suggest_float("lr", 0.01, 0.1, log=True)  # log scale
+        sched = trial.suggest_categorical("sched", ["constant", "linear", "cosine", "step", "plateau"])  # categorical
+        delta = trial.suggest_float("delta", 0.01, 0.1, log=True)  # log scale
 
-        C = trial.suggest_float("C", 1e-2, 1e2, log=True)  # log scale
+        C = trial.suggest_float("C", 0.1, 10, log=True)  # log scale
         
         config = dict(trial.params)
         config["trial_number"] = trial.number
@@ -71,8 +91,8 @@ def hpo(graph: nx.Graph, n_trials: int = 100, device:str="cpu"):
 
         dataset = RW_Iterable(graph, p, q, l, l_ns, batch_size, set_node_labels)  # custom iterable dataset of pq-walks
         epoch = 0
-        max_epochs = 500
-        for X in train_node2vec(dataset, dim, l, max_epochs, batch_size, device, lr, delta, verbose=False, yield_X=True): #n_batches = 1, because not used, bc early stopping
+        max_epochs = n_epochs
+        for X in train_node2vec(dataset, dim, l, max_epochs, batch_size, device, lr=lr, delta=delta, lrsched=sched, verbose=False, yield_X=True): #n_batches = 1, because not used, bc early stopping
             y = dataset.node_labels  # node labels as target values for classifier
 
             classifier = LogisticRegression(n_jobs=-1,
@@ -92,10 +112,12 @@ def hpo(graph: nx.Graph, n_trials: int = 100, device:str="cpu"):
             mean_score = np.mean(scores['test_score'])
             wandb.log({"mean_score": mean_score})
             trial.report(mean_score, epoch)
-            if trial.should_prune():
-                wandb.run.summary["state"] = "pruned"
-                wandb.finish()
-                raise optuna.TrialPruned()
+            #not used in optimized search
+            # if trial.should_prune():
+            #     wandb.run.summary["state"] = "pruned"
+            #     wandb.run.summary["final_score"] = mean_score
+            #     wandb.finish()
+            #     raise optuna.TrialPruned()
             epoch += 1
 
         wandb.run.summary["final_score"] = mean_score
@@ -104,7 +126,7 @@ def hpo(graph: nx.Graph, n_trials: int = 100, device:str="cpu"):
 
         return mean_score
 
-    study = optuna.create_study(direction="maximize", pruner=optuna.pruners.MedianPruner())
+    study = optuna.create_study(direction="maximize")#, pruner=optuna.pruners.MedianPruner()) #<- pruner not used in optimized search
     study.optimize(objective, n_trials=n_trials, n_jobs=1)
 
 

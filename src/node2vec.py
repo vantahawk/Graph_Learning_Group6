@@ -120,7 +120,7 @@ from typing import Generator, overload, Literal
 @overload
 def train_node2vec(dataset: RW_Iterable, dim: int, l: int,
                     n_batches: int, batch_size: int, device: str,
-                    lr: float = 0.001, delta:float=0.01, verbose:bool=False, yield_X:Literal[False]=False) -> np.ndarray:
+                    lr: float = 0.001, lrsched:str="constant", delta:float=0.01, verbose:bool=False, yield_X:Literal[False]=False) -> np.ndarray:
     """Trains node2vec model on given graph w/ Adam optimizer, using [batch_size] random walks w/ parameters p, q, l, l_ns & embedding [dim]
 
     Returns embedding matrix X as np.ndarray"""
@@ -129,7 +129,7 @@ def train_node2vec(dataset: RW_Iterable, dim: int, l: int,
 @overload
 def train_node2vec(dataset: RW_Iterable, dim: int, l: int,
                     n_batches: int, batch_size: int, device: str,
-                    lr: float = 0.001, delta:float=0.01, verbose:bool=False, yield_X:Literal[True]=True) -> Generator:
+                    lr: float = 0.001, lrsched:str="constant", delta:float=0.01, verbose:bool=False, yield_X:Literal[True]=True) -> Generator:
     """Trains node2vec model on given graph w/ Adam optimizer, using [batch_size] random walks w/ parameters p, q, l, l_ns & embedding [dim]
     
     Returns embedding matrix X as np.ndarray, yields X at each epoch if [yield_X] is True"""
@@ -137,7 +137,7 @@ def train_node2vec(dataset: RW_Iterable, dim: int, l: int,
 
 def train_node2vec(dataset: RW_Iterable, dim: int, l: int,  # main parameters, see sheet
                    n_batches: int, batch_size: int, device: str,  # extra parameters
-                   lr: float = 0.001, delta:float=0.01, verbose:bool=False, yield_X:bool=False):  # default learning rate
+                   lr: float = 0.001, lrsched:str="constant", delta:float=0.01, verbose:bool=False, yield_X:bool=False):  # default learning rate
     '''trains node2vec model on given graph w/ Adam optimizer, using [batch_size] random walks w/ parameters p, q, l, l_ns & embedding [dim]
     
     returns embedding matrix X as np.ndarray, optionally yields X at each epoch if [yield_X] is True'''
@@ -147,7 +147,13 @@ def train_node2vec(dataset: RW_Iterable, dim: int, l: int,  # main parameters, s
     model.to(device)  # move model to device
     model.train()  # switch model to training mode
     optimizer = Adam(model.parameters(), lr=lr)  # construct optimizer
-    lrsched = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, 10000)  # cosine
+    if lrsched != "constant":
+        lrsched = {
+            "cosine":torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, n_batches),  # cosine
+            "plateau":torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', factor=0.1, patience=5, verbose=verbose),
+            "step":torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1, verbose=verbose),
+            "linear":torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1, end_factor=0, total_iters=n_batches, verbose=verbose),
+        }[lrsched]
 
     #early stopping
     early_stopping = EarlyStopping(patience=10, verbose=verbose, delta=delta)
@@ -169,7 +175,11 @@ def train_node2vec(dataset: RW_Iterable, dim: int, l: int,  # main parameters, s
                 optimizer.step()  # SGD step
                 optimizer.zero_grad()  # set gradients to zero
             mean_loss = th.mean(th.stack(losses))
-            lrsched.step()
+            if lrsched != "constant":
+                if not isinstance(lrsched,torch.optim.lr_scheduler.ReduceLROnPlateau):
+                    lrsched.step()
+                else:
+                    lrsched.step(mean_loss)
             early_stopping(mean_loss, model)
             if early_stopping.early_stop:
                 break

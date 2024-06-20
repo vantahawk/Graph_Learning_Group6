@@ -75,6 +75,7 @@ class RW_Iterable(IterableDataset):
         worker_pool = mp.Pool(self.num_workers, initializer=init_worker, initargs=(shared_adj, ) )  # pool of worker processes for multiprocessing
         #self.start = 0
         #self.end = batch_size
+        self.sampled_walks = 0
 
     # don't use bc makes batches different
     # def rw_wrapper(self, n_nodes:int, adj_shape, l, l_ns, p, q, seed:int=None)->np.ndarray:
@@ -87,7 +88,8 @@ class RW_Iterable(IterableDataset):
         #submit tasks to the pool
         global worker_pool
         b = self.batch_size
-        return worker_pool.starmap(self.random_walk, zip(repeat(self.n_nodes,b), repeat(self.adj_shape,b), repeat(self.l,b), repeat(self.l_ns,b), repeat(self.p,b), repeat(self.q,b), range(self.batch_size)))
+        self.sampled_walks += b #count the number of sampled walks, so that seed can be different for each batch
+        return worker_pool.starmap(self.random_walk, zip(repeat(self.n_nodes,b), repeat(self.adj_shape,b), repeat(self.l,b), repeat(self.l_ns,b), repeat(self.p,b), repeat(self.q,b), range(self.sampled_walks-b, self.sampled_walks)))
         
     @staticmethod
     def random_walk(n_nodes:int, adj_shape, l, l_ns, p, q, seed:int)->np.ndarray:
