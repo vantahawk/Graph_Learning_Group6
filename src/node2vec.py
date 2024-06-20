@@ -58,64 +58,46 @@ class EarlyStopping:
 class Node2Vec(Module):
     '''node2vec embedding as torch module w/ embedding matrix X as parameter & the def. stochastic loss fct. as foward fct.'''
     def __init__(self, n_nodes: int, dim: int, l: int) -> None:
+        """initializes node2vec embedding as torch module w/ embedding matrix X as parameter & the def. stochastic loss fct. as foward fct.
+    
+        Args:
+            n_nodes (int): number of nodes
+            dim (int): embedding dimension
+            l (int): random walk length
+        """
         super().__init__()
 
-        # main attributerw_batch
-        #self.n_nodes = n_nodes  # number of nodes
-        #self.dim = dim  # embedding dimension
         self.l = l  # random walk length
 
         # initialize node2vec embedding matrix X randomly as parameter
         self.X = Parameter(th.empty(n_nodes, dim))  # n_nodes x dim
-        # TODO test different initializations?
         kaiming_normal_(self.X)
-        #kaiming_uniform_(self.X)
-        #normal_(self.X, mean=0.0, std=1.0)
-        #uniform_(self.X, a=-1.0, b=1.0)
-        #xavier_normal_(self.X)
-        #xavier_uniform_(self.X)
 
 
     def forward(self, rw_batch: th.Tensor) -> th.Tensor:
-        '''forward fct. of node2vec embedding, takes batch matrix (2D) of stacked pq-walk data, returns scalar value of mean loss fct. over pq-walk batch (simplified, see conversion) as def. in sheet/script'''
-        # sum_loss = th.tensor(0.)  # initialize sum of loss values
-        # for rw_vec in list(rw_batch):  # run over pq-walk data vectors in batch
-        #     X_start = self.X[rw_vec[0]]  # embedding vec. of start node (X_s)
-        #     walk_idx = rw_vec[: self.l + 1]  # selection from X acc. to pq-walk nodes, including start node
-        #     neg_idx = rw_vec[self.l + 1 :]  # selection from X acc. to negative samples
-        #     numerator_term = th.sum(th.matmul(self.X[walk_idx[1 :]], X_start), -1)  # see conversion of loss-fct., using walk_idx w/o start node
-
-        #     # FIXME whether to reassign walk_idx to only include each node once (i.e. interpret pq-walk "w" as set rather than sequence in denominator term), interpretation in script/sheet unclear, enable/disable accordingly
-        #     walk_idx = th.tensor(list(set(np.array(walk_idx))))
-
-        #     # add loss value for each pq-walk: compute denominator term (see conversion of loss-fct.), then subtract numerator term
-        #     sum_loss += self.l * th.log(th.sum(th.exp(th.matmul(self.X[th.cat([walk_idx, neg_idx], -1)], X_start)), -1)) - numerator_term
+        '''forward fct. of node2vec embedding, takes batch matrix (2D) of stacked pq-walk data, returns scalar value of mean loss fct. over pq-walk batch (simplified, see conversion) as def. in sheet/script
+        
+        Args:
+            rw_batch (th.Tensor): batch matrix (2D) of stacked pq-walk data: [batch_size, l+1+l_ns] (l+1 for pq-walk, l_ns for negative samples)
+            
+        Returns:
+            th.Tensor: scalar value of mean loss fct. over pq-walk batch (simplified, see conversion) as def. in sheet/script'''
 
         #now get rid of the for loop, by doing it in parallel
         X_start = self.X[rw_batch[:, 0]]  # embedding vec. of start node (X_s)
         walk_idx = rw_batch[:, :self.l+1]
         neg_idx = rw_batch[:, self.l+1:]
-        # print(self.X[walk_idx[:, 1:]].shape)
-        # print(X_start.shape)
+
         numerator_term = th.sum(th.bmm(self.X[walk_idx[:, 1:]], X_start.unsqueeze(2)), 1)
-        # walk_idx = MAKE_UNIQUE
 
         # add loss value for each pq-walk: compute denominator term (see conversion of loss-fct.)
-        loss = self.l * th.log(th.sum(th.exp(th.bmm(self.X[th.cat([walk_idx, neg_idx], 1)], X_start.unsqueeze(2))), 1)) - numerator_term
+        loss = self.l * th.log(th.sum(th.exp(th.bmm(self.X[th.cat([walk_idx.unique(dim=1), neg_idx], 1)], X_start.unsqueeze(2))), 1)) - numerator_term
+        #above is actually this: -log(exp numerator/sum exp denominator) = -log(exp numerator) + log(sum exp denominator) = -numerator + log(sum exp denominator)
 
         return loss.mean()
 
-"""
-    def forward(self, rw_batch: th.Tensor) -> th.Tensor:
-        '''short version of forward fct. of node2vec embedding, interpreting pq-walk "w" as sequence rather than set within denominator term'''
-        sum_loss = th.tensor(0.)  # initialize sum of loss values
-        for rw_vec in list(rw_batch):  # run over pq-walk data vectors in batch
-            X_start = self.X[rw_vec[0]]  # embedding vec. of start node (X_s)
-            # add loss value for each pq-walk all in one go
-            sum_loss += self.l * th.log(th.sum(th.exp(th.matmul(self.X[rw_vec], X_start)), -1)) - th.sum(th.matmul(self.X[rw_vec[1 : self.l + 1]], X_start), -1)
-        return sum_loss / len(rw_batch)  # return mean loss over batch
-"""
 
+#THESE ARE THE OVERLOADS, USED FOR TYPE HINTING 
 from typing import Generator, overload, Literal
 @overload
 def train_node2vec(dataset: RW_Iterable, dim: int, l: int,
@@ -147,6 +129,7 @@ def train_node2vec(dataset: RW_Iterable, dim: int, l: int,  # main parameters, s
     model.to(device)  # move model to device
     model.train()  # switch model to training mode
     optimizer = Adam(model.parameters(), lr=lr)  # construct optimizer
+    #if no constant learnong rate, construct scheduler
     if lrsched != "constant":
         lrsched = {
             "cosine":torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, n_batches),  # cosine
@@ -158,6 +141,8 @@ def train_node2vec(dataset: RW_Iterable, dim: int, l: int,  # main parameters, s
     #early stopping
     early_stopping = EarlyStopping(patience=10, verbose=verbose, delta=delta)
     
+    # doing it this way, we can yield the X at each epoch
+    # then we can train logReg-Classifier on each epoch, this gives nice visualizations
     def train():
         while(True):
             nonlocal n_batches
@@ -175,6 +160,7 @@ def train_node2vec(dataset: RW_Iterable, dim: int, l: int,  # main parameters, s
                 optimizer.step()  # SGD step
                 optimizer.zero_grad()  # set gradients to zero
             mean_loss = th.mean(th.stack(losses))
+            # if not constant learning rate, step scheduler
             if lrsched != "constant":
                 if not isinstance(lrsched,torch.optim.lr_scheduler.ReduceLROnPlateau):
                     lrsched.step()
@@ -218,5 +204,5 @@ if __name__ == "__main__":
 
     dataset = RW_Iterable(graph, p, q, l, l_ns, batch_size, set_node_labels)  # custom iterable dataset instance
     #dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=0)  # turns random walk batches into th.tensors, single-process w/ renewing randomness
-    X = train_node2vec(dataset, dim, l, n_batches, batch_size, device)
+    X = train_node2vec(dataset, dim, l, n_batches, batch_size, device, lr=0.01, lrsched="cosine", delta=0.01, verbose=True, yield_X=False)
     print(X[0])
