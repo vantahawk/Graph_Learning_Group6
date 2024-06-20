@@ -42,7 +42,7 @@ or
 ```
 
 where `<TASK>` is either `node` or `link` for Exercise 3 and 4, respectively, and <br>
-where `<DATASET>` is one of `Cora`, `Citeseer` for Ex.3, and  `Facebook'`, `PPI` for Ex. 4.
+where `<DATASET>` is one of `Cora`, `Citeseer` for Ex.3, and  `Facebook`, `PPI` for Ex. 4.
 
 
 ## Chosen Hyperparameters
