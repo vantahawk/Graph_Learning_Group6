@@ -1,4 +1,6 @@
+from networkx import Graph, adjacency_matrix, number_of_edges, number_of_nodes
 import networkx as nx
+#from numpy import ndarray, array, concatenate, sum
 import numpy as np
 from numpy.random import default_rng
 #import torch as th
@@ -10,6 +12,9 @@ from multiprocessing.pool import Pool
 import time
 from itertools import repeat
 
+#import the buffer type from numpy
+from collections.abc import Buffer
+
 
 """
 def one_hot_encoder(label: int, length: int) -> np.ndarray:
@@ -19,8 +24,8 @@ def one_hot_encoder(label: int, length: int) -> np.ndarray:
     return zero_vector
 """
 # Global variables to be used by the worker processes
-global_shared_adj = None
-worker_pool: Pool = None
+global_shared_adj:Buffer|None = None
+worker_pool: Pool|None = None
 
 def init_worker(shared_adj):
     """Initializes the shared adjacency matrix for the worker processes."""
@@ -42,21 +47,12 @@ class RW_Iterable(IterableDataset):
         self.n_nodes:int = nx.number_of_nodes(graph)
 
         if set_node_labels:  # for node classification (Ex.3)
-            self.node_labels = [node[1]['node_label'] for node in graph.nodes(data=True)]  # int-list, fails for Facebook, idk why, not needed tho
-            self.node_labels = np.array(self.node_labels)  # np.ndarray
-            """
-            # one-hot-encoded [node_labels], n_nodes x label_range, neither workable nor necessary for logistic regression in sklearn
-            self.min_label = min(self.node_labels)
-            self.label_range = max(self.node_labels) - self.min_label + 1
-            self.node_labels_one_hot = np.array([one_hot_encoder(label - self.min_label, self.label_range) for label in self.node_labels])
-            #self.node_labels_one_hot = th.tensor(self.node_labels_one_hot)  #th.tensor
-            """
+            # 1D-np.ndarray, size: n_nodes, fails for Facebook, unknown why, not needed tho
+            self.node_labels = np.array([node[1]['node_label'] for node in graph.nodes(data=True)])
         else:  # only set edges instead, for link prediction (Ex.4)
-            self.n_edges = nx.number_of_edges(graph)
-            self.nodes_start = [edge[0] - 1 for edge in graph.edges(data=True)]  # subtract 1 to account for node count starting at zero
-            self.nodes_end = [edge[1] - 1 for edge in graph.edges(data=True)]
-            self.edges = [self.nodes_start, self.nodes_end]  # int-list, 2 x n_edges
-            #self.edges = np.array(self.edges)  # np.ndarray
+            self.n_edges = number_of_edges(graph)
+            # 2D-np.ndarray, size: n_edges x 2, subtract 1 elem.wise to account for node count starting at zero
+            self.edges = np.array([[edge[0], edge[1]] for edge in graph.edges(data=True)]) - 1
             #self.edges = th.tensor(self.edges)  # th.tensor
 
         # attributes for random walk generation
@@ -75,19 +71,23 @@ class RW_Iterable(IterableDataset):
         worker_pool = mp.Pool(self.num_workers, initializer=init_worker, initargs=(shared_adj, ) )  # pool of worker processes for multiprocessing
         #self.start = 0
         #self.end = batch_size
+        self.sampled_walks = 0
 
-    def rw_wrapper(self, n_nodes:int, adj_shape, l, l_ns, p, q, seed:int=None)->np.ndarray:
-        """Wrapper function for random_walk to make the seed more random by incorporating the current time."""
-        return self.random_walk(n_nodes, adj_shape, l, l_ns, p, q, seed=seed+int(time.time()*1000))
+    # don't use bc makes batches different
+    # def rw_wrapper(self, n_nodes:int, adj_shape, l, l_ns, p, q, seed:int=None)->np.ndarray:
+    #     """Wrapper function for random_walk to make the seed more random by incorporating the current time."""
+    #     return self.random_walk(n_nodes, adj_shape, l, l_ns, p, q, seed=seed+int(time.time()*1000))
     
     def rw_batch(self) -> list[np.ndarray]:
         '''returns batch (list) of pq-walk data, each including: random start node, followed by l nodes of random pq-walk, followed by l_ns negative samples, concatenated into 1D-np.ndarray'''
-        batch = []  # collect pq-walk data arrays in list
         
         #submit tasks to the pool
         global worker_pool
+        if worker_pool is None:
+            raise RuntimeError("Pool not initialized")
         b = self.batch_size
-        return worker_pool.starmap(self.rw_wrapper, zip(repeat(self.n_nodes,b), repeat(self.adj_shape,b), repeat(self.l,b), repeat(self.l_ns,b), repeat(self.p,b), repeat(self.q,b), range(self.batch_size)))
+        self.sampled_walks += b #count the number of sampled walks, so that seed can be different for each batch
+        return worker_pool.starmap(self.random_walk, zip(repeat(self.n_nodes,b), repeat(self.adj_shape,b), repeat(self.l,b), repeat(self.l_ns,b), repeat(self.p,b), repeat(self.q,b), range(self.sampled_walks-b, self.sampled_walks)))
         
     @staticmethod
     def random_walk(n_nodes:int, adj_shape, l, l_ns, p, q, seed:int)->np.ndarray:
@@ -110,14 +110,20 @@ class RW_Iterable(IterableDataset):
         last = rng.choice(n_nodes, size=None, replace=True, p=None, axis=0, shuffle=True)  # np.int32
 
         #get the shared adjacency matrix
+        global global_shared_adj
+        if global_shared_adj is None:
+            raise RuntimeError("Shared adjacency matrix not initialized")
         adj_mat = np.frombuffer(global_shared_adj, dtype=np.int32).reshape(adj_shape)  # np.ndarray
 
         start_nbh = adj_mat[last]  # neighborhood of start node repres. as resp. row of adjacency matrix
         # current node, initially the 2nd node of pq-walk, uniformly sampled from neighborhood of start node
         current = rng.choice(n_nodes, size=None, replace=True, p = start_nbh / np.sum(start_nbh), axis=0, shuffle=True)
-        pq_walk = [last, current]  # collect sampled nodes of pq-walk in list
 
-        for step in range(l - 1):  # sample the l-1 next nodes in pq-walk using algebraic construction of alpha (see def. in script/sheet)
+        pq_walk = np.zeros((l,), dtype=np.int32)
+        pq_walk[0] = last
+        pq_walk[1] = current
+
+        for step in range(2,l):  # sample the l-1 next nodes in pq-walk using algebraic construction of alpha (see def. in script/sheet)
             current_nbh = adj_mat[current]  # neighborhood of current node repres. as its adj.mat.row
             # common neighborhood of last & current node, repres. as elem-wise product of resp. adj.mat.rows, accounts for 2nd row in def. of alpha
             common_nbh = np.multiply(adj_mat[last], current_nbh)
@@ -127,23 +133,27 @@ class RW_Iterable(IterableDataset):
 
             # sample next node in pq-walk according to norm.ed alpha (discrete probab. over all nodes)
             next = rng.choice(n_nodes, size=None, replace=True, p = alpha / np.sum(alpha), axis=0, shuffle=True)
-            pq_walk.append(next)
+            pq_walk[step] = next
 
             # update last & current node
             last = current
             current = next
 
-        rest_nodes = list(set(range(n_nodes)).difference(set(pq_walk)))  # remaining nodes after drawn pq-walk
+        rest_nodes = np.arange(n_nodes)  # remaining nodes after drawn pq-walk
+        rest_nodes = np.delete(rest_nodes, pq_walk)  # remove nodes already in pq-walk
         # negative samples (np.ndarray) uniformly drawn from remaining nodes
-        neg_samples = rng.choice(rest_nodes, size=l_ns, replace=False, p=None, axis=0, shuffle=False)  # w/o repetition
+        neg_samples = rng.choice(rest_nodes, size=l_ns, replace=False, axis=0, shuffle=False)  # w/o repetition
         #neg_samples = self.rng.choice(rest_nodes, size=self.l_ns, replace=True, p=None, axis=0, shuffle=False)  # w/ repetition
 
         #batch.append(th.tensor(np.concatenate([np.array(pq_walk), neg_samples], axis=-1)))
-        return np.concatenate([np.array(pq_walk), neg_samples], axis=-1)  # gets cast to th.tensor by dataloader
+        return np.concatenate([pq_walk, neg_samples], axis=-1)  # gets cast to th.tensor by dataloader
 
     def __iter__(self) -> Iterator[np.ndarray]:
-        '''returns iterator of pq-walk data, single-process: runs slow, unreliable or unintended otherwise...'''
+        '''returns iterator of pq-walk data'''
         return iter(self.rw_batch())
+
+    def get(self)->np.ndarray:
+        return np.array(self.rw_batch())
 
 
 
@@ -187,8 +197,9 @@ if __name__ == "__main__":
         for batch in dataloader:
             print(batch)
         print("\n")
-    worker_pool.close()
-    worker_pool.join()
+    if not worker_pool is None:
+        worker_pool.close()
+        worker_pool.join()
     end = timer()
     print(f"Time elapsed: {end - start:.2f} s")
 

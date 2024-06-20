@@ -1,4 +1,4 @@
-# Explanation and Setup for the Code of Group 6 for Sheet 3
+# Explanation and Setup for the Code of Group 6 for Sheet 4
 
 ## Requirements
 
@@ -40,103 +40,92 @@ from src.hpo import hpt
 
 ## How to run
 
-How to run code for Ex.6:
+### How to run code for Ex.3:
 
 ```batch
 ::ON WINDOWS cmdline
-...\group6> python main.py
+...\group6> python src/node_class.py --dataset <DATASET>
 ```
 
 or
 
 ```bash
 # ON LINUX
-.../group6$ python main.py
+.../group6$ python src/node_class.py --dataset <DATASET>
 ```
 
-...runs the evaluation (Ex.6) on all 3 ZINC datasets ['Train', 'Val', 'Test'] and for the best of the 3 scatter aggregation types ['sum', 'mean', 'max']. To run other aggregations, scatter-types can be chosen by setting the resp. keywords as stated here as optional arguments;  scatter-types after flag `-s`, all separated by spaces. E.g. in order to evaluate ZINC_Val & ZINC_Test using scatter_max & scatter_sum, set:
+where `<DATASET>` is one of `Cora`, `Citeseer`.
 
-`python main.py -s max sum`
+### How to run code for Ex.4:
 
-Training is always done on ZINC_Train. The same info can also be found with the `--help` or `-h` flag like so: `python main.py -h`
+```batch
+::ON WINDOWS cmdline
+...\group6> python src/link_pred.py --dataset <DATASET>
+```
 
-EDIT: Argument parser was changed in Benedict's fork. See `--help`.
+or
 
-Since scatter_sum often yielded the best results, it may suffice to run only that like so: `python main.py -s sum`
+```bash
+# ON LINUX
+.../group6$ python src/link_pred.py --dataset <DATASET>
+```
 
-The remaining exercises 1-5 are covered by the python files in `src`, where each file covers one exercise:
-
-Ex.1: `dataset.py`, Ex.2: `collation.py`, Ex. 3: `layer.py`, Ex.4: `pooling.py`, Ex.5: `virtual_node.py`
+where `<DATASET>` is one of `Facebook'`, `PPI`.
 
 
-## Ex. 6
+## Chosen Hyperparameters
 
-Model in `model.py`, parameters in `main.py` or `hpo.py`, respectively.
+### Ex. 3
 
-### Attributes & Parameters
+For Exercise 3, the following hyperparameters were used for each dataset:<br>
+We used an HPO to find these.
 
-We used the optimizer 'Adam' and the l1-loss function. As expected, scatter_sum turned out to be the most promising aggregation type.
 
-Parameter Values Used:
+| Dataset   | sched    | C      | batch_size | delta       | dim  | l   | l_ns | lr     | n_epochs | p   | q   |
+|-----------|----------|--------|------------|-------------|------|-----|------|--------|----------|-----|-----|
+| Cora      | plateau  | 98.533 | 8726       | 0.005616    | 128  | 5   | 5    | 0.006572 | 250      | 1   | 0.1 |
+| CiteSeer  | linear   | 48.541 | 9742       | 0.00001324  | 128  | 5   | 5    | 0.0968   | 200      | 1   | 0.1 |
 
-- Training
-    - batch_size (<class 'int'>): 16
-    - n_epochs (<class 'int'>): 75
-    - weight_decay (<class 'float'>): 2.38002958385e-05
-    - use_weight_decay (<class 'numpy.int64'>): 1
-    - beta1 (<class 'float'>): 0.9027517490672556
-    - beta2 (<class 'numpy.float64'>): 0.999
-- GNN
-    - scatter_type (<class 'numpy.str_'>): sum
-    - n_GNN_layers (<class 'int'>): 5
-    - dim_between (<class 'int'>): 32
-- Message function (M)
-    - n_M_layers (<class 'int'>): 1
-    - dim_M (<class 'int'>): 29
-    - m_nlin (<class 'numpy.str_'>): leaky_relu
-- Update function (U)
-    - n_U_layers (<class 'int'>): 3
-    - dim_U (<class 'int'>): 30
-    - u_nlin (<class 'numpy.str_'>): relu
-- Virtual Nodes (VN)
-    - use_virtual_nodes (<class 'int'>): 1
-    - n_virtual_layers (<class 'int'>): 1
-    - (activation fct.: relu)
-- (Post-Pooling) MLP
-    - n_MLP_layers (<class 'int'>): 1
-    - dim_MLP (<class 'int'>): 15
-    - mlp_nlin (<class 'numpy.str_'>): relu
-- Misc
-    - lr (<class 'float'>): 0.0065104040069957
-    - lrsched (<class 'numpy.str_'>): cosine
-    - use_dropout (<class 'numpy.int64'>): 1
-    - dropout_prob (<class 'float'>): 0.4619822213678156
-    - use_residual (<class 'numpy.int64'>): 0
-    - use_skip (<class 'numpy.int64'>): 1
 
-### Results for Ex. 6
+### Ex. 4
 
-Mean Absolute Error (rounded) on the ZINC datasets, for the chosen scatter operation type:
+For Exercise 4, the following hyperparameters were used for each dataset:<br>
+These were discovered by good intuition after the HPO for task 3. 
 
-| Scatter ↓ , Dataset → | Train  | Val    | Test   |
-| :-------------------- | :----- | :----- | :----- |
-| SUM                   | 0.1167 | 0.3081 | 0.3057 |
+Dataset | sched | C | batch_size | delta | dim | l | l_ns | lr | n_epochs | p | q
+--- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---
+Facebook | - | - | 2000 | - | 128 | 5 | 5 | 0.01 | 100 | 1.0 | 1.0
+PPI | - | - | 2000 | - | 128 | 5 | 5 | 0.01 | 100 | 1.0 | 1.0
+
+the non-given values were left at their default values.
+
+## Results
+
+### Ex. 3
+
+Dataset | Accuracy
+---: | :---:
+Cora | 0.83 ± 0.01
+CiteSeer | 0.72 ± 0.01
+
+### Ex. 4
+
+Dataset | Accuracy | ROC-AUC
+---: | :---: | :---:
+Facebook | 97.7 ± 1.29 |97.78 ± 1.28
+PPI | 86.79 ± 4.4 | 86.8 ± 4.34
 
 ## Discussion
 
-We used a BOHB HPO to optimize the hyperparameters, we first had problems achieving low errors, which lay in our bad choice for the dimension-spaces. They were just way to small, when we enlargened this and added more training regularization, error improved drastically.
+For Citeseer finding good hyperparameters was difficult. Thats why we made the HPO.
+For Cora, the results are much better than the requested 0.75. But for Citeseer, it's relatively tight.
 
-We still think there might be something wrong in the layer construction, but are not quite sure.
-
-BUT, you can have a look at this beauty:
-[wandb.ai/export](https://wandb.ai/gerlach/gnn_zinc/reports/Untitled-Report--Vmlldzo4MjQ5MTAw)
+For link prediction, the results are very good. The ROC-AUC is very high, and the accuracy is also very good. And the hyperparameters were relatively easy to find.
 
 ## Conclusion
 
 As mentioned, we maybe have yet to find some error of construction somewhere, and further experiment w/ much higher hidden dimensions for M, U & MLP, before we can hope to reach the target MAE.
 
----
-
 ### Note on Exercise Split
 
-In part due to difficult time constraints on both Benedict and Ahmet, David ended up providing most of the codebase (`david/sheet3`) this time around. Benedict greatly helped to further debug and refine the code, and ran a hyperparameter optimization over the parameters mentioned in the list above. We ended up pushing most of his forked code (`benedict/sheet3`) to the `main` branch. Ahmet also made himself available for further improvements on the code.
+
