@@ -1,5 +1,5 @@
 # external imports
-import networkx as nx
+#import networkx as nx
 import numpy as np
 import torch as th
 from torch.nn import Module, Parameter
@@ -43,7 +43,7 @@ class Node2Vec(Module):
             neg_idx = rw_vec[self.l + 1 :]  # selection from X acc. to negative samples
             numerator_term = th.sum(th.matmul(self.X[walk_idx[1 :]], X_start), -1)  # see conversion of loss-fct., using walk_idx w/o start node
 
-            # FIXME whether to reassign walk_idx to only include each node once (i.e. interpret pq-walk "w" as set rather than sequence in denominator term), interpretation in script/sheet unclear, enable/disable accordingly
+            # FIXME whether to reassign walk_idx to only include each node once (i.e. interpret pq-walk "w" as set rather than sequence in denominator term), interpretation in script/sheet unclear, (de)comment the following line accordingly:
             walk_idx = th.tensor(list(set(np.array(walk_idx))))
 
             # add loss value for each pq-walk: compute denominator term (see conversion of loss-fct.), then subtract numerator term
@@ -97,7 +97,7 @@ if __name__ == "__main__":
     device = ("cuda" if th.cuda.is_available() else "mps" if th.backends.mps.is_available() else "cpu")  # choose by device priority
     batch_size = 10
     n_batches = 100
-    dim = 12
+    dim = 128 #12
     p = 1.0
     q = 1.0
     l = 5

@@ -1,4 +1,5 @@
-import networkx as nx
+from networkx import Graph, adjacency_matrix, number_of_edges, number_of_nodes
+#from numpy import ndarray, array, concatenate, sum
 import numpy as np
 from numpy.random import default_rng
 #import torch as th
@@ -17,32 +18,23 @@ def one_hot_encoder(label: int, length: int) -> np.ndarray:
 
 class RW_Iterable(IterableDataset):
     '''implements custom iterable dataset for random [pq]-walks of length l over given [graph], together w/ [l_ns] negative samples'''
-    def __init__(self, graph: nx.Graph, p: float, q: float, l: int, l_ns: int,  # main parameters, see sheet
+    def __init__(self, graph: Graph, p: float, q: float, l: int, l_ns: int,  # main parameters, see sheet
                  batch_size: int, set_node_labels: bool) -> None:  # extra parameters
         super().__init__()
 
         # main graph attributes
         #self.graph = graph  # full nx.Graph
-        self.adj_mat = nx.adjacency_matrix(graph).toarray()  # int32-np.ndarray
-        #self.adj_mat = th.tensor(nx.adjacency_matrix(graph).toarray())  # int32-th.tensor
-        self.n_nodes = nx.number_of_nodes(graph)
+        self.adj_mat = adjacency_matrix(graph).toarray()  # int32-np.ndarray
+        #self.adj_mat = th.tensor(adjacency_matrix(graph).toarray())  # int32-th.tensor
+        self.n_nodes = number_of_nodes(graph)
 
         if set_node_labels:  # for node classification (Ex.3)
-            self.node_labels = [node[1]['node_label'] for node in graph.nodes(data=True)]  # int-list, fails for Facebook, idk why, not needed tho
-            self.node_labels = np.array(self.node_labels)  # np.ndarray
-            """
-            # one-hot-encoded [node_labels], n_nodes x label_range, neither workable nor necessary for logistic regression in sklearn
-            self.min_label = min(self.node_labels)
-            self.label_range = max(self.node_labels) - self.min_label + 1
-            self.node_labels_one_hot = np.array([one_hot_encoder(label - self.min_label, self.label_range) for label in self.node_labels])
-            #self.node_labels_one_hot = th.tensor(self.node_labels_one_hot)  #th.tensor
-            """
+            # 1D-np.ndarray, size: n_nodes, fails for Facebook, unknown why, not needed tho
+            self.node_labels = np.array([node[1]['node_label'] for node in graph.nodes(data=True)])
         else:  # only set edges instead, for link prediction (Ex.4)
-            self.n_edges = nx.number_of_edges(graph)
-            self.nodes_start = [edge[0] - 1 for edge in graph.edges(data=True)]  # subtract 1 to account for node count starting at zero
-            self.nodes_end = [edge[1] - 1 for edge in graph.edges(data=True)]
-            self.edges = [self.nodes_start, self.nodes_end]  # int-list, 2 x n_edges
-            #self.edges = np.array(self.edges)  # np.ndarray
+            self.n_edges = number_of_edges(graph)
+            # 2D-np.ndarray, size: n_edges x 2, subtract 1 elem.wise to account for node count starting at zero
+            self.edges = np.array([[edge[0], edge[1]] for edge in graph.edges(data=True)]) - 1
             #self.edges = th.tensor(self.edges)  # th.tensor
 
         # attributes for random walk generation
@@ -121,7 +113,7 @@ if __name__ == "__main__":
         #ds.start = overall_start + worker_id * per_worker
         ds.end = min(ds.start + per_worker, overall_end)
     """
-    n_workers = 2 #cpu_count(logical=True)
+    #n_workers = 2 #cpu_count(logical=True)
     batch_size =  5 #3 * n_workers
 
     with open('datasets/Citeseer/data.pkl', 'rb') as data:
