@@ -96,8 +96,15 @@ For link prediction, the results are very good. The ROC-AUC is very high, and th
 
 ## Conclusion
 
-As mentioned, we maybe have yet to find some error of construction somewhere, and further experiment w/ much higher hidden dimensions for M, U & MLP, before we can hope to reach the target MAE.
+This task was more successful than the last ones, in achieving the desired values.
+Implementation was quite fast, HPO was fast. 
+Overall good entire exercise.
 
 ### Note on Exercise Split
-
+David started on the node2vev and node classification and implemented most things roughly, but quite well.
+Same goes for the link prediction.
+Benedict improved upon his code by making it faster, and more parallelized. He did the hpo for the ex.3.
+For ex.4 he improved upon the edge sampling by introducing the building of the spanning tree, to remove necessary edges.
+Ahmet developed all his code side-by-side. He and David had trouble achieving the desired accuracies, probably because they choose the hyperparameters not well. 
+Benedict cleaned the submitted code in the end.
 
