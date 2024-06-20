@@ -94,6 +94,9 @@ For Cora, the results are much better than the requested 0.75. But for Citeseer,
 
 For link prediction, the results are very good. The ROC-AUC is very high, and the accuracy is also very good. And the hyperparameters were relatively easy to find.
 
+For Ex.3 we again have wandb reports:<br>
+[Cora Report](https://wandb.ai/gerlach/labcourse_node2vec_Cora_fixed/reports/Cora-Wandb-Report--Vmlldzo4NDA0Mzgx)
+[Citeseer Report](https://wandb.ai/gerlach/labcourse_node2vec_Citeseer_fixed/reports/Citeseer-Wandb-Report--Vmlldzo4NDA0Mzk4)
 ## Conclusion
 
 This task was more successful than the last ones, in achieving the desired values.
