@@ -73,11 +73,6 @@ class RW_Iterable(IterableDataset):
         #self.end = batch_size
         self.sampled_walks = 0
 
-    # don't use bc makes batches different
-    # def rw_wrapper(self, n_nodes:int, adj_shape, l, l_ns, p, q, seed:int=None)->np.ndarray:
-    #     """Wrapper function for random_walk to make the seed more random by incorporating the current time."""
-    #     return self.random_walk(n_nodes, adj_shape, l, l_ns, p, q, seed=seed+int(time.time()*1000))
-    
     def rw_batch(self) -> list[np.ndarray]:
         '''returns batch (list) of pq-walk data, each including: random start node, followed by l nodes of random pq-walk, followed by l_ns negative samples, concatenated into 1D-np.ndarray'''
         
@@ -143,9 +138,7 @@ class RW_Iterable(IterableDataset):
         rest_nodes = np.delete(rest_nodes, pq_walk)  # remove nodes already in pq-walk
         # negative samples (np.ndarray) uniformly drawn from remaining nodes
         neg_samples = rng.choice(rest_nodes, size=l_ns, replace=False, axis=0, shuffle=False)  # w/o repetition
-        #neg_samples = self.rng.choice(rest_nodes, size=self.l_ns, replace=True, p=None, axis=0, shuffle=False)  # w/ repetition
 
-        #batch.append(th.tensor(np.concatenate([np.array(pq_walk), neg_samples], axis=-1)))
         return np.concatenate([pq_walk, neg_samples], axis=-1)  # gets cast to th.tensor by dataloader
 
     def __iter__(self) -> Iterator[np.ndarray]:
@@ -185,10 +178,6 @@ if __name__ == "__main__":
 
     dataset = RW_Iterable(graph, p=1.0, q=1.0, l=20, l_ns=20, batch_size=batch_size, set_node_labels=False, n_workers=1)  # custom iterable dataset instance
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=0)  # turns random walk batches into th.tensors, single-process w/ renewing randomness
-
-    # multi-process part removed
-    #dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=n_workers, worker_init_fn=worker_split)  # issue w/ worker_split(), produces failed subprocesses
-    #dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=n_workers)  # works but returns one batch for each subprocess? also duplicates depending on implementation (expected but not efficiently fixed yet)
 
     from timeit import default_timer as timer
 

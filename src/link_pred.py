@@ -219,19 +219,10 @@ def link_pred(graph: Graph, p: float, q: float, l: int, l_ns: int, dim: int,  # 
     # return mean & standard deviation of the scores of each score type over the [k] eval splices, optionally also over the train splices
     return [(modes_types[i], scores_mean[i], scores_std[i]) for i in range(len(modes_types))]
 
-
-
-if __name__ == "__main__":
+def main(dataset:str):
     # test link prediction
     import pickle
     import torch as th
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='PPI', help='Dataset to use: \"PPI\" or \"Facebook\"')
-
-    dataset = parser.parse_args().dataset
-    if dataset not in ['PPI', 'Facebook']:
-        raise ValueError("Dataset must be either \"PPI\" or \"Facebook\"")
 
     device = ("cuda" if th.cuda.is_available() else "mps" if th.backends.mps.is_available() else "cpu")  # choose by device priority
     batch_size = 2000 
@@ -255,3 +246,14 @@ if __name__ == "__main__":
     print(f"\nMean \u00b1 StD of Scores for dataset {dataset}, rounded in %:")
     for mode, mean, std in results:
         print(f"{mode}:\t{round(mean * 100 , 2)} \u00b1 {round(std * 100 , 2)}")
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description="Link Prediction")
+    parser.add_argument('--dataset', type=str, default='PPI', help='Dataset to use: \"PPI\" or \"Facebook\"')
+
+    dataset = parser.parse_args().dataset
+    if dataset not in ['PPI', 'Facebook']:
+        raise ValueError("Dataset must be either \"PPI\" or \"Facebook\"")
+
+    main(dataset)

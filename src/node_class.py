@@ -147,20 +147,12 @@ def hpo(graph: nx.Graph, n_trials: int = 100, device:str="cpu"):
     study = optuna.create_study(direction="maximize")#, pruner=optuna.pruners.MedianPruner()) #<- pruner not used in optimized search
     study.optimize(objective, n_trials=n_trials, n_jobs=1)
 
-
-if __name__ == "__main__":
+def main(dataset:str):
     # test node classification
     import pickle
     import torch as th
 
     device = ("cuda" if th.cuda.is_available() else "mps" if th.backends.mps.is_available() else "cpu")  # choose by device priority
-
-    parser = argparse.ArgumentParser(description='Node Classification')
-    parser.add_argument('--dataset', type=str, default="Cora", help='Dataset to use for node classification. Options: \"Citeseer\", \"Cora\"')
-
-    dataset = parser.parse_args().dataset
-    if dataset not in ["Citeseer", "Cora"]:
-        raise ValueError("Dataset not available. Please choose from \"Citeseer\" or \"Cora\"")
 
     #default hyperparameters
     if dataset == "Citeseer":
@@ -201,3 +193,14 @@ if __name__ == "__main__":
 
     #to run hyperparameter optimization, comment out the above and uncomment the following 
     # hpo(graph, n_trials=100, device=device) #requires wandb login
+
+if __name__ == "__main__":
+    
+    parser = argparse.ArgumentParser(description='Node Classification')
+    parser.add_argument('--dataset', type=str, default="Cora", help='Dataset to use for node classification. Options: \"Citeseer\", \"Cora\"')
+
+    dataset = parser.parse_args().dataset
+    if dataset not in ["Citeseer", "Cora"]:
+        raise ValueError("Dataset not available. Please choose from \"Citeseer\" or \"Cora\"")
+
+    main(dataset)
