@@ -12,6 +12,9 @@ from multiprocessing.pool import Pool
 import time
 from itertools import repeat
 
+#import the buffer type from numpy
+from collections.abc import Buffer
+
 
 """
 def one_hot_encoder(label: int, length: int) -> np.ndarray:
@@ -21,8 +24,8 @@ def one_hot_encoder(label: int, length: int) -> np.ndarray:
     return zero_vector
 """
 # Global variables to be used by the worker processes
-global_shared_adj = None
-worker_pool: Pool = None
+global_shared_adj:Buffer|None = None
+worker_pool: Pool|None = None
 
 def init_worker(shared_adj):
     """Initializes the shared adjacency matrix for the worker processes."""
@@ -80,6 +83,8 @@ class RW_Iterable(IterableDataset):
         
         #submit tasks to the pool
         global worker_pool
+        if worker_pool is None:
+            raise RuntimeError("Pool not initialized")
         b = self.batch_size
         self.sampled_walks += b #count the number of sampled walks, so that seed can be different for each batch
         return worker_pool.starmap(self.random_walk, zip(repeat(self.n_nodes,b), repeat(self.adj_shape,b), repeat(self.l,b), repeat(self.l_ns,b), repeat(self.p,b), repeat(self.q,b), range(self.sampled_walks-b, self.sampled_walks)))
@@ -105,6 +110,9 @@ class RW_Iterable(IterableDataset):
         last = rng.choice(n_nodes, size=None, replace=True, p=None, axis=0, shuffle=True)  # np.int32
 
         #get the shared adjacency matrix
+        global global_shared_adj
+        if global_shared_adj is None:
+            raise RuntimeError("Shared adjacency matrix not initialized")
         adj_mat = np.frombuffer(global_shared_adj, dtype=np.int32).reshape(adj_shape)  # np.ndarray
 
         start_nbh = adj_mat[last]  # neighborhood of start node repres. as resp. row of adjacency matrix
@@ -189,8 +197,9 @@ if __name__ == "__main__":
         for batch in dataloader:
             print(batch)
         print("\n")
-    worker_pool.close()
-    worker_pool.join()
+    if not worker_pool is None:
+        worker_pool.close()
+        worker_pool.join()
     end = timer()
     print(f"Time elapsed: {end - start:.2f} s")
 

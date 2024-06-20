@@ -161,7 +161,7 @@ def train_node2vec(dataset: RW_Iterable, dim: int, l: int,  # main parameters, s
                 optimizer.zero_grad()  # set gradients to zero
             mean_loss = th.mean(th.stack(losses))
             # if not constant learning rate, step scheduler
-            if lrsched != "constant":
+            if lrsched != "constant" and not isinstance(lrsched, str):
                 if not isinstance(lrsched,torch.optim.lr_scheduler.ReduceLROnPlateau):
                     lrsched.step()
                 else:

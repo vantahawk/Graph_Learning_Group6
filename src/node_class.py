@@ -9,6 +9,7 @@ from sklearn.model_selection import cross_validate, KFold
 from node2vec import Node2Vec, train_node2vec
 from random_walks import RW_Iterable
 from timeit import default_timer as timer
+import argparse
 
 
 def node_class(graph: nx.Graph, dim: int, p: float, q: float, l: int, l_ns: int,  # main parameters, see sheet
@@ -68,16 +69,16 @@ def hpo(graph: nx.Graph, n_trials: int = 100, device:str="cpu"):
     import optuna
     import wandb
 
-    def objective(trial):
+    def objective(trial:optuna.Trial):
         # define search space for hyperparameters
 
         #GENERAL SEARCH
-        dim = trial.suggest_int("dim", 8, 256, log=True) #categorical, choose some discrete values
+        dim = trial.suggest_categorical("dim", [128]) 
         p = trial.suggest_categorical("p", [0.1, 1]) 
         q = trial.suggest_categorical("q", [0.1, 1])
-        l = trial.suggest_int("l", 20, 200, log=True)
-        l_ns = trial.suggest_int("l_ns", 20, 2000, log=True)
-        batch_size = trial.suggest_int("batch_size", 10, 1000, log=True)
+        l = trial.suggest_categorical("l", [5])
+        l_ns = trial.suggest_categorical("l_ns", [5])
+        batch_size = trial.suggest_int("batch_size", 10, 10000, log=True)
 
         n_epochs = trial.suggest_int("n_epochs", 50, 500, log=True)
 
@@ -104,7 +105,7 @@ def hpo(graph: nx.Graph, n_trials: int = 100, device:str="cpu"):
         
         config = dict(trial.params)
         config["trial_number"] = trial.number
-        wandb.init(project="node_classification_Cora", config=config, reinit=True)
+        wandb.init(project="labcourse_node2vec_Cora_fixed", config=config, reinit=True)
 
         dataset = RW_Iterable(graph, p, q, l, l_ns, batch_size, set_node_labels=True)  # custom iterable dataset of pq-walks
         epoch = 0
@@ -154,35 +155,41 @@ if __name__ == "__main__":
 
     device = ("cuda" if th.cuda.is_available() else "mps" if th.backends.mps.is_available() else "cpu")  # choose by device priority
 
-    dataset = "Citeseer"
+    parser = argparse.ArgumentParser(description='Node Classification')
+    parser.add_argument('--dataset', type=str, default="Cora", help='Dataset to use for node classification. Options: \"Citeseer\", \"Cora\"')
 
+    dataset = parser.parse_args().dataset
+    if dataset not in ["Citeseer", "Cora"]:
+        raise ValueError("Dataset not available. Please choose from \"Citeseer\" or \"Cora\"")
+
+    #default hyperparameters
     if dataset == "Citeseer":
         config = {
-            "sched": "cosine",
-            "C":2.884,
-            "batch_size": 660,
-            "delta": 0.01423,
-            "dim": 251,
-            "l": 99,
-            "l_ns": 22,
-            "lr": 0.01907,
-            "n_epochs": 500,
-            "p": 0.1,
-            "q": 1,
+            "sched": "linear",
+            "C":48.541,
+            "batch_size": 9742,
+            "delta": 0.00001324,
+            "dim": 128,
+            "l": 5,
+            "l_ns": 5,
+            "lr": 0.0968,
+            "n_epochs": 200,
+            "p": 1,
+            "q": 0.1,
         }
     elif dataset == "Cora":
         config = {
-            "sched": "constant",
-            "C": 0.6516312844703022,
-            "batch_size": 257,
-            "delta": 0.0785058599417405,
-            "dim": 237,
-            "l": 71,
-            "l_ns": 138,
-            "lr": 0.009707123531453407,
-            "n_epochs": 461,
-            "p": 0.1,
-            "q": 1,
+            "sched": "plateau",
+            "C": 98.533,
+            "batch_size": 8726,
+            "delta": 0.005616,
+            "dim": 128,
+            "l": 5,
+            "l_ns": 5,
+            "lr": 0.006572,
+            "n_epochs": 250,
+            "p": 1,
+            "q": 0.1,
         }
 
     with open(f'datasets/{dataset}/data.pkl', 'rb') as data:
@@ -192,6 +199,5 @@ if __name__ == "__main__":
     mean, std = node_class(graph, **config, device=device)
     print(f"Mean \u00b1 StD of Accuracy Scores for dataset {dataset}:\n\trounded in %:\t{round(mean * 100 , 2)} \u00b1 {round(std * 100 , 2)}")
 
-    # run hyperparameter optimization
-    #requires wandb login
-    # hpo(graph, n_trials=100, device=device)
+    #to run hyperparameter optimization, comment out the above and uncomment the following 
+    # hpo(graph, n_trials=100, device=device) #requires wandb login
