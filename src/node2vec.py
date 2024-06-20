@@ -1,5 +1,5 @@
 # external imports
-import networkx as nx
+#import networkx as nx
 import numpy as np
 import torch as th
 from torch.nn import Module, Parameter
@@ -189,7 +189,7 @@ if __name__ == "__main__":
     device = ("cuda" if th.cuda.is_available() else "mps" if th.backends.mps.is_available() else "cpu")  # choose by device priority
     batch_size = 10
     n_batches = 100
-    dim = 12
+    dim = 128 #12
     p = 1.0
     q = 1.0
     l = 5
