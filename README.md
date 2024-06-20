@@ -75,14 +75,14 @@ the non-given values were left at their default values.
 
 ### Ex. 3
 
-Dataset | Accuracy
+Dataset | Accuracy in %
 ---: | :---:
-Cora | 0.83 ± 0.01
-CiteSeer | 0.72 ± 0.01
+Cora | 85.3 ± 1.93
+CiteSeer | 63.56 ± 2.0
 
 ### Ex. 4
 
-Dataset | Accuracy | ROC-AUC
+Dataset | Accuracy in % | ROC-AUC in %
 ---: | :---: | :---:
 Facebook | 97.7 ± 1.29 |97.78 ± 1.28
 PPI | 86.79 ± 4.4 | 86.8 ± 4.34
