@@ -27,92 +27,92 @@ BATCH/CMDLine
 
 ## How to run
 
-How to run code for Ex.3 & 4:
+### How to run code for Ex.3:
 
 ```batch
 ::ON WINDOWS cmdline
-...\group6> python main.py
+...\group6> python src/node_class.py --dataset <DATASET>
 ```
 
 or
 
 ```bash
 # ON LINUX
-.../group6$ python main.py
+.../group6$ python src/node_class.py --dataset <DATASET>
 ```
 
-TODO (update & finish readme)
+where `<DATASET>` is one of `Cora`, `Citeseer`.
 
-...runs the evaluation (Ex.6) on all 3 ZINC datasets ['Train', 'Val', 'Test'] and for all 3 scatter aggregation types ['sum', 'mean', 'max'] once in said orders (9 results total). Alternatively specific datasets and/or scatter-types can be chosen by setting the resp. keywords as stated here as optional arguments; datasets after flag `-d` and scatter-types after flag `-s`, all separated by spaces. E.g. in order to evaluate ZINC_Val & ZINC_Test using scatter_max & scatter_sum, set:
+### How to run code for Ex.4:
 
-`python main.py -d Val Test -s max sum`
+```batch
+::ON WINDOWS cmdline
+...\group6> python src/link_pred.py --dataset <DATASET>
+```
 
-Training is always done on ZINC_Train. The same info can also be found with the `--help` or `-h` flag like so: `python main.py -h`
+or
 
-Since scatter_sum often yielded the best results, it may suffice to run only that like so: `python main.py -s sum`
+```bash
+# ON LINUX
+.../group6$ python src/link_pred.py --dataset <DATASET>
+```
 
-The remaining exercises 1-5 are covered by the python files in `src`, where each file covers one exercise:
-
-Ex.1: `dataset.py`, Ex.2: `collation.py`, Ex. 3: `layer.py`, Ex.4: `pooling.py`, Ex.5: `virtual_node.py`
+where `<DATASET>` is one of `Facebook'`, `PPI`.
 
 
-## Ex. 6
+## Chosen Hyperparameters
 
-### Attributes & Parameters
+### Ex. 3
 
-We used the optimizer 'Adam' and the l1-loss function. scatter_sum turned out to be the most promising aggregation type.
+For Exercise 3, the following hyperparameters were used for each dataset:<br>
+We used an HPO to find these.
 
-- Training
-    - batch size: 10
-    - number of epochs: 20
-- GNN
-    - number of GNN layers: 2
-    - dimension between GNN layers: 5
-- Message function (M)
-    - number of M layers: 1
-    - hidden dimension of M: 5
-    - activation function of M layers: ReLU
-- Update function (U)
-    - number of U layers: 2
-    - hidden dimension of U: 5
-    - activation function of hidden U layers: ReLU
-- Virtual Nodes (VN)
-    - use virtual nodes: Yes
-    - number of VN-MLP layers: 1
-    - activation function of VN- MLP layers: ReLU
-- (Post-Pooling) MLP
-    - number of MLP layers: 2
-    - hidden dimension of MLP: 5
-    - activation function of hidden MLP layers: ReLU
 
-### Results for Ex. 6
+| Dataset   | sched    | C      | batch_size | delta       | dim  | l   | l_ns | lr     | n_epochs | p   | q   |
+|-----------|----------|--------|------------|-------------|------|-----|------|--------|----------|-----|-----|
+| Cora      | plateau  | 98.533 | 8726       | 0.005616    | 128  | 5   | 5    | 0.006572 | 250      | 1   | 0.1 |
+| CiteSeer  | linear   | 48.541 | 9742       | 0.00001324  | 128  | 5   | 5    | 0.0968   | 200      | 1   | 0.1 |
 
-Mean Absolute Error (rounded) on the ZINC datasets, for each scatter aggregation type:
 
-| Scatter ↓ , Dataset → | Train | Val  | Test |
-| :-------------------- | :---- | :--- | :--- |
-| SUM                   |  0.49 | 0.49 | 0.54 |
-| MEAN                  |  0.56 | 0.57 | 0.62 |
-| MAX                   |  0.55 | 0.57 | 0.62 |
+### Ex. 4
 
+For Exercise 4, the following hyperparameters were used for each dataset:<br>
+These were discovered by good intuition after the HPO for task 3. 
+
+Dataset | sched | C | batch_size | delta | dim | l | l_ns | lr | n_epochs | p | q
+--- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---
+Facebook | - | - | 2000 | - | 128 | 5 | 5 | 0.01 | 100 | 1.0 | 1.0
+PPI | - | - | 2000 | - | 128 | 5 | 5 | 0.01 | 100 | 1.0 | 1.0
+
+the non-given values were left at their default values.
+
+## Results
+
+### Ex. 3
+
+Dataset | Accuracy
+---: | :---:
+Cora | 0.83 ± 0.01
+CiteSeer | 0.72 ± 0.01
+
+### Ex. 4
+
+Dataset | Accuracy | ROC-AUC
+---: | :---: | :---:
+Facebook | 97.7 ± 1.29 |97.78 ± 1.28
+PPI | 86.79 ± 4.4 | 86.8 ± 4.34
 
 ## Discussion
 
-The mean absolute error (MAE) develops generally as expected, with MAEs decaying roughly asymptotically for all 3 datasets with increasing epochs; usually most for ZINC_Train, less so for ZINC_Val and least for ZINC_Test.
+For Citeseer finding good hyperparameters was difficult. Thats why we made the HPO.
+For Cora, the results are much better than the requested 0.75. But for Citeseer, it's relatively tight.
 
-Unfortunately though we did not manage to reach the target MAE of 0.2 for ZINC_Test.
-
-Generally more than 2-5 GNN layers did not yield notably better or yielded worse results and only extended computation time unnecessarily. Performance and computation time also tend to worsen for a number of epochs below or high above a magnitude of around 10.
-
-Errors within dataset.py, collation.y or layer.py were considered as reasons for the subpar performance, but none were found and we figured, if present, they would yield much worse results even. There might be issues in how the layer module (lists) in GNN_Layer are constructed, but we also found no further error in there.
-
+For link prediction, the results are very good. The ROC-AUC is very high, and the accuracy is also very good. And the hyperparameters were relatively easy to find.
 
 ## Conclusion
 
-As mentioned, we likely have yet to find some error of construction somewhere, before we can hope to reach the target MAE.
 
----
 
 ### Note on Exercise Split
 
-In part due to difficult time constraints on both Benedict and Ahmet, David ended up providing most of the codebase (`david/sheet3`) this time around. Benedict greatly helped to further debug and refine the code, and ran a hyperparameter optimization over the parameters mentioned in the list above. Ahmet also made himself available for further improvements on the code.
+
