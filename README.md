@@ -27,37 +27,22 @@ BATCH/CMDLine
 
 ## How to run
 
-### How to run code for Ex.3:
+### How to run code for Ex.3 or Ex.4:
 
 ```batch
 ::ON WINDOWS cmdline
-...\group6> python src/node_class.py --dataset <DATASET>
+...\group6> python src/main.py --task <TASK> --dataset <DATASET>
 ```
 
 or
 
 ```bash
 # ON LINUX
-.../group6$ python src/node_class.py --dataset <DATASET>
+.../group6$ python src/main.py --task <TASK> --dataset <DATASET>
 ```
 
-where `<DATASET>` is one of `Cora`, `Citeseer`.
-
-### How to run code for Ex.4:
-
-```batch
-::ON WINDOWS cmdline
-...\group6> python src/link_pred.py --dataset <DATASET>
-```
-
-or
-
-```bash
-# ON LINUX
-.../group6$ python src/link_pred.py --dataset <DATASET>
-```
-
-where `<DATASET>` is one of `Facebook'`, `PPI`.
+where `<TASK>` is either `node` or `link` for Exercise 3 and 4, respectively, and <br>
+where `<DATASET>` is one of `Cora`, `Citeseer` for Ex.3, and  `Facebook'`, `PPI` for Ex. 4.
 
 
 ## Chosen Hyperparameters
