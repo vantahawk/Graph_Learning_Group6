@@ -14,15 +14,20 @@ def node_class(graph: Graph, p: float, q: float, l: int, l_ns: int, dim: int,  #
                n_batches: int, batch_size: int, device: str, return_train_score: bool,  # extra parameters
                k: int = 10, lr: float = 0.01, set_node_labels: bool = True) -> list[tuple[str, np.float64, np.float64]]:  # default settings
     '''runs node classification (Ex.3) for given [graph] (here: Citeseer & Cora): trains node2vec embedding X first from given parameters, then uses that as input to learn & classify node labels y by running [k]-fold cross-validation w/ logistic regression, returns mean & std of accuracy scores on test splits'''
+    print("Prepare dataset") if print_progress else print(end="")
     dataset = RW_Iterable(graph, p, q, l, l_ns, batch_size, set_node_labels)  # custom iterable dataset of pq-walks
+
+    print("Train node2vec embedding") if print_progress else print(end="")
     X = train_node2vec(dataset, dim, l, n_batches, batch_size, device, lr)  # train node2vec embedding, use as inputs to classifier
     y = dataset.node_labels  # node labels as target values for classifier
 
     # construct classifier object: logistic regression
+    print("Construct classifier") if print_progress else print(end="")
     classifier = LogisticRegression(n_jobs=-1,  # runs on all CPU cores, default param.s otherwise
         penalty='l2', dual=False, tol=0.0001, C=1.0, fit_intercept=True, intercept_scaling=1, class_weight=None, random_state=None, solver='lbfgs', max_iter=100, verbose=0, warm_start=False, l1_ratio=None)
 
     # return accuracy scores on X vs. y from [k]-fold cross-validation using [classifier]
+    print("Compute results") if print_progress else print(end="")
     scores = cross_validate(classifier, X, y, scoring='accuracy', cv=k, n_jobs=-1,  # runs on all CPU cores
         groups=None, verbose=0, pre_dispatch='2*n_jobs', return_estimator=False,  # default param.s
         return_train_score=return_train_score,  # compute scores on train splits for comparison, else: False for speed up
@@ -34,13 +39,15 @@ def node_class(graph: Graph, p: float, q: float, l: int, l_ns: int, dim: int,  #
 
 
 
+print_progress = False
 if __name__ == "__main__":
     # test node classification
     import pickle
     import torch as th
 
+    print_progress = True
     device = ("cuda" if th.cuda.is_available() else "mps" if th.backends.mps.is_available() else "cpu")  # choose by device priority
-    batch_size = 1000 #100 # 1000 #2000 #5000
+    batch_size = 10 #100 # 1000 #2000 #5000
     # on batch size together w/ param.s below: >=1000 reaches threshold for Cora!, could not reach threshold for Citeseer w/ <=5000...
     n_batches = 100
     dim = 128

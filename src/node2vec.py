@@ -17,13 +17,12 @@ class Node2Vec(Module):
         super().__init__()
 
         # main attributes of rw_batch
-        #self.n_nodes = n_nodes  # number of nodes
-        #self.dim = dim  # embedding dimension
         self.l = l  # random walk length
+        self.walk_dim = l + 1
 
         # initialize node2vec embedding matrix X randomly as parameter
         self.X = Parameter(th.empty(n_nodes, dim))  # n_nodes x dim
-        # TODO test different initializations?
+        # test different initializations
         kaiming_normal_(self.X)
         #kaiming_uniform_(self.X)
         #normal_(self.X, mean=0.0, std=1.0)
@@ -35,31 +34,22 @@ class Node2Vec(Module):
     def forward(self, rw_batch: th.Tensor) -> th.Tensor:
         '''forward fct. of node2vec embedding, takes batch matrix (2D) of stacked pq-walk data, returns scalar value of mean loss fct. over pq-walk batch (simplified, see conversion) as def. in sheet/script'''
         sum_loss = th.tensor(0.)  # initialize sum of loss values
-        for rw_vec in list(rw_batch):  # run over pq-walk data vectors in batch
-            cutoff = self.l + 1  # re-split pq-walk data vector
+        for rw_vec in rw_batch:  # run over pq-walk data vectors in batch
+            # re-split pq-walk data vector
             X_start = self.X[rw_vec[0]]  # embedding vec. of start node (X_s)
-            walk_idx = rw_vec[: cutoff]  # selection from X acc. to pq-walk nodes, including start node
-            neg_idx = rw_vec[cutoff :]  # selection from X acc. to negative samples
-            numerator_term = th.sum(th.matmul(self.X[walk_idx[1 :]], X_start), -1)  # see conversion of loss-fct., using walk_idx w/o start node
+            walk_idx = rw_vec[: self.walk_dim]  # selection from X acc. to pq-walk nodes, including start node
+            neg_idx = rw_vec[self.walk_dim :]  # selection from X acc. to negative samples
+            # see conversion of loss-fct., using walk_idx w/o start node
+            numerator_term = th.sum(th.matmul(self.X[walk_idx[1 :]], X_start), -1)
 
             # FIXME whether to reassign walk_idx to only include each node once (i.e. interpret pq-walk "w" as set rather than sequence in denominator term), interpretation in script/sheet unclear, (de)comment the following line accordingly:
-            walk_idx = th.tensor(list(set(np.array(walk_idx))))
+            walk_idx = th.unique(walk_idx, sorted=False)
 
             # add loss value for each pq-walk: compute denominator term (see conversion of loss-fct.), then subtract numerator term
             sum_loss += self.l * th.log(th.sum(th.exp(th.matmul(self.X[th.cat([walk_idx, neg_idx], -1)], X_start)), -1)) - numerator_term
 
         return sum_loss / len(rw_batch)  # return mean loss over batch
 
-"""
-    def forward(self, rw_batch: th.Tensor) -> th.Tensor:
-        '''short version of forward fct. of node2vec embedding, interpreting pq-walk "w" as sequence rather than set within denominator term'''
-        sum_loss = th.tensor(0.)  # initialize sum of loss values
-        for rw_vec in list(rw_batch):  # run over pq-walk data vectors in batch
-            X_start = self.X[rw_vec[0]]  # embedding vec. of start node (X_s)
-            # add loss value for each pq-walk all in one go
-            sum_loss += self.l * th.log(th.sum(th.exp(th.matmul(self.X[rw_vec], X_start)), -1)) - th.sum(th.matmul(self.X[rw_vec[1 : self.l + 1]], X_start), -1)
-        return sum_loss / len(rw_batch)  # return mean loss over batch
-"""
 
 
 def train_node2vec(dataset: RW_Iterable, dim: int, l: int,  # main parameters, see sheet
@@ -77,7 +67,6 @@ def train_node2vec(dataset: RW_Iterable, dim: int, l: int,  # main parameters, s
     for i in range(n_batches):
         for rw_batch in dataloader:  # access single batch in dataloader
             rw_batch = rw_batch.to(device)  # move random walk batch to device
-            #loss = th.mean(model(W), 0)  # forward pass = compute loss, take batch-lvl mean (see sheet/script)
             loss = model(rw_batch)  # # forward pass = compute batch-lvl mean loss
             loss.backward()  # backward pass
             optimizer.step()  # SGD step
@@ -110,6 +99,5 @@ if __name__ == "__main__":
         graph = pickle.load(data)[0]
 
     dataset = RW_Iterable(graph, p, q, l, l_ns, batch_size, set_node_labels)  # custom iterable dataset instance
-    #dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=0)  # turns random walk batches into th.tensors, single-process w/ renewing randomness
     X = train_node2vec(dataset, dim, l, n_batches, batch_size, device)
     print(X[0])
