@@ -156,6 +156,7 @@ def main(dataset:str):
 
     #default hyperparameters
     if dataset == "Citeseer":
+        #pq=1-0.1 <- main default
         config = {
             "sched": "linear",
             "C":48.541,
@@ -169,7 +170,36 @@ def main(dataset:str):
             "p": 1,
             "q": 0.1,
         }
+        #pq=1-1
+        # config = {
+        #     "sched": "linear",
+        #     "C": 47.417,
+        #     "batch_size": 9586,
+        #     "delta": 0.00001599,
+        #     "dim": 128,
+        #     "l": 5,
+        #     "l_ns": 5,
+        #     "lr": 0.09754,
+        #     "n_epochs": 165,
+        #     "p": 1,
+        #     "q": 1,
+        # }
+        # pq=0.1-1 <- was not optimised well by hpo so params are just chosen similarly to above
+        # config = {
+        #     "sched": "linear",
+        #     "C": 48,
+        #     "batch_size": 9500,
+        #     "delta": 0.00001324,
+        #     "dim": 128,
+        #     "l": 5,
+        #     "l_ns": 5,
+        #     "lr": 0.09754,
+        #     "n_epochs": 200,
+        #     "p": 0.1,
+        #     "q": 1,
+        # }
     elif dataset == "Cora":
+        #pq=1-0.1 <- main default
         config = {
             "sched": "plateau",
             "C": 98.533,
@@ -183,6 +213,34 @@ def main(dataset:str):
             "p": 1,
             "q": 0.1,
         }
+        #pq=1-1
+        # config = {
+        #     "sched": "linear",
+        #     "C": 13.834,
+        #     "batch_size": 4201,
+        #     "delta": 0.001215,
+        #     "dim": 128,
+        #     "l": 5,
+        #     "l_ns": 5,
+        #     "lr": 0.01152,
+        #     "n_epochs": 78,
+        #     "p": 1,
+        #     "q": 1,
+        # }
+        #pq=0.1-1
+        # config = {
+        #     "sched": "linear",
+        #     "C": 14.703,
+        #     "batch_size": 5714,
+        #     "delta": 0.0003326,
+        #     "dim": 128,
+        #     "l": 5,
+        #     "l_ns": 5,
+        #     "lr": 0.05343,
+        #     "n_epochs": 79,
+        #     "p": 0.1,
+        #     "q": 1,
+        # }
 
     with open(f'datasets/{dataset}/data.pkl', 'rb') as data:
         graph = pickle.load(data)[0]
