@@ -2,12 +2,12 @@ aenum
 argparse
 #ast
 #collections
-#ConfigSpace  # for hpo.py, install issues...
+#ConfigSpace  # for hpo, install issues...
 #importlib
 #inspect
 #math
 matplotlib
-more_itertools  # for hpo.py
+more_itertools  # for hpo
 networkx
 numba
 #numbers
@@ -21,7 +21,7 @@ psutil
 pytorch-lightning
 scikit-learn
 scipy
-#smac  # for hpo.py, install issues?
+#smac  # for hpo, install issues?
 #sympy
 #sys
 torch
@@ -30,4 +30,4 @@ torchvision
 #torchaudio
 tqdm
 typing  # optional?
-wandb  # for hpo.py
+wandb  # for hpo

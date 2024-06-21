@@ -27,7 +27,7 @@ BATCH/CMDLine
 
 ## How to run
 
-### How to run code for Ex.3 or Ex.4:
+### How to run code for Ex.3 & 4:
 
 ```batch
 ::ON WINDOWS cmdline
@@ -42,7 +42,7 @@ or
 ```
 
 where `<TASK>` is either `node` or `link` for Exercise 3 and 4, respectively, and <br>
-where `<DATASET>` is one of `Cora`, `Citeseer` for Ex.3, and  `Facebook`, `PPI` for Ex. 4.
+where `<DATASET>` is one of `Cora`, `Citeseer` for Ex.3, and  `Facebook`, `PPI` for Ex.4.
 
 
 ## Chosen Hyperparameters
@@ -53,8 +53,8 @@ For Exercise 3, the following hyperparameters were used for each dataset:<br>
 We used an HPO to find these.
 
 
-| Dataset   | sched    | C      | batch_size | delta       | dim  | l   | l_ns | lr     | n_epochs | p   | q   |
-|-----------|----------|--------|------------|-------------|------|-----|------|--------|----------|-----|-----|
+| Dataset   | sched    | C      | batch_size | delta       | dim  | l   | l_ns | lr       | n_epochs | p   | q   |
+|-----------|----------|--------|------------|-------------|------|-----|------|----------|----------|-----|-----|
 | Cora      | plateau  | 98.533 | 8726       | 0.005616    | 128  | 5   | 5    | 0.006572 | 250      | 1   | 0.1 |
 | CiteSeer  | linear   | 48.541 | 9742       | 0.00001324  | 128  | 5   | 5    | 0.0968   | 200      | 1   | 0.1 |
 
@@ -62,54 +62,63 @@ We used an HPO to find these.
 ### Ex. 4
 
 For Exercise 4, the following hyperparameters were used for each dataset:<br>
-These were discovered by good intuition after the HPO for task 3. 
+These were discovered by good intuition after the HPO for task 3.
 
 Dataset | sched | C | batch_size | delta | dim | l | l_ns | lr | n_epochs | p | q
---- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---
+------- | ----- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---
 Facebook | - | - | 2000 | - | 128 | 5 | 5 | 0.01 | 100 | 1.0 | 1.0
 PPI | - | - | 2000 | - | 128 | 5 | 5 | 0.01 | 100 | 1.0 | 1.0
 
-the non-given values were left at their default values.
+The non-given values were left at their default values.
+
 
 ## Results
 
 ### Ex. 3
-__Accuracy in %__
-Dataset \ p,q=| 1,.1 | .1,1 | 1,1
----: | :---: | :---: | :---:
-Cora | 85.3 ± 1.93 | 85.78 ± 1.73 | 84.38 ± 2.42
-CiteSeer | 63.56 ± 2.0 | 59.78 ± 2.31 | 63.22 ± 2.62
-
+__Mean ± StD of Accuracy, rounded in %:__
+Dataset ↓ , p,q →| 1.0, 0.1    | 0.1, 1.0     | 1.0, 1.0
+:--------------- | :---------: | :----------: | :----------:
+Cora             | 85.3 ± 1.93 | 85.78 ± 1.73 | 84.38 ± 2.42
+Citeseer         | 63.56 ± 2.0 | 59.78 ± 2.31 | 63.22 ± 2.62
 
 
 ### Ex. 4
+__Mean ± StD - rounded in % - of:__
+Dataset  | Accuracy    | ROC-AUC
+:------- | :---------: | :----------:
+Facebook | 97.7 ± 1.29 | 97.78 ± 1.28
+PPI      | 86.79 ± 4.4 | 86.8 ± 4.34
 
-Dataset | Accuracy in % | ROC-AUC in %
----: | :---: | :---:
-Facebook | 97.7 ± 1.29 |97.78 ± 1.28
-PPI | 86.79 ± 4.4 | 86.8 ± 4.34
 
 ## Discussion
 
-For Citeseer finding good hyperparameters was difficult. Thats why we made the HPO.
-For Cora, the results are much better than the requested 0.75. But for Citeseer, it's relatively tight.
+For Citeseer finding good hyperparameters was difficult, which is why we ran an HPO for that.
+For Cora, the results are much better than the requested threshold, whereas for Citeseer, it is relatively tight.
 
-For link prediction, the results are very good. The ROC-AUC is very high, and the accuracy is also very good. And the hyperparameters were relatively easy to find.
+For link prediction, the results are very good, reaching high ROC-AUC scores and accuracies well above the requested thresholds. The hyperparameters were relatively easy to find.
+
+Yet it must be noted that the computation of the tensor of Hadamard products `XX` is rather memory-inefficient and may thus lead to memory issues, e.g. RAM spillovers and associated slowdowns. We tried to fix this issue by finding a more elegant way of mapping/indexing edges to `XX` (see `david/sheet4`) but have yet to iron things out.
+
+We initially had trouble reaching the desired thresholds until we ran the HPO for Ex.3 and intuited better hyperparameters for Ex.4, e.g. more and much larger batches.
 
 For Ex.3 we again have wandb reports:<br>
 [Cora Report](https://wandb.ai/gerlach/labcourse_node2vec_Cora_fixed/reports/Cora-Wandb-Report--Vmlldzo4NDA0Mzgx)
 [Citeseer Report](https://wandb.ai/gerlach/labcourse_node2vec_Citeseer_fixed/reports/Citeseer-Wandb-Report--Vmlldzo4NDA0Mzk4)
+
+
 ## Conclusion
 
-This task was more successful than the last ones, in achieving the desired values.
-Implementation was quite fast, HPO was fast. 
-Overall good entire exercise.
+This task was more successful than the last ones in achieving the desired results. Accounting for said memory issues, the implementation itself as well as the HPO were relatively fast.
+
+There were however some ambiguities in the exercise: For example whether w & w' in the sum in the denominator of the loss function should be interpreted as set or sequence, i.e. if they may contain repeated nodes. Moreover some of the graphs contained connected components w/ less than two edges, e.g. singular nodes w/ self-loops. Since these could not satisfy the connectivity conditions set forth for edge sampling, we included the option of removing them beforehand.
+
+Luckily though, none of these issues seemed to lead to much of a performance loss.
+
 
 ### Note on Exercise Split
-David started on the node2vev and node classification and implemented most things roughly, but quite well.
-Same goes for the link prediction.
-Benedict improved upon his code by making it faster, and more parallelized. He did the hpo for the ex.3.
-For ex.4 he improved upon the edge sampling by introducing the building of the spanning tree, to remove necessary edges.
-Ahmet developed all his code side-by-side. He and David had trouble achieving the desired accuracies, probably because they choose the hyperparameters not well. 
-Benedict cleaned the submitted code in the end.
 
+David laid much of the groundwork for random walks (Ex.1), node2vec (Ex.2), node classification (Ex.3) & link prediction (Ex.4).
+Benedict greatly improved upon David's code by making it faster, especially making the random walks more parallelized.
+Moreover he did the HPO for Ex.3 and intuited good hyperparameters for Ex.4.
+For Ex.4 he improved upon the edge sampling by introducing the building of the spanning trees to avoid the removal of connecting edges between train. & eval. edge sets.
+Ahmet developed all his code side-by-side. Benedict cleaned and submitted his forked code in the end.

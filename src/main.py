@@ -18,12 +18,12 @@ if __name__ == "__main__":
             raise ValueError("Wrong dataset for the task, choose either \"Facebook\" or \"PPI\".")
         print(f"Doing Link Prediction on Dataset {dataset}.")
         predict_links(dataset)
-    
+
     elif task == "node":
         if not dataset in ["Citeseer", "Cora"]:
             raise ValueError("Wrong dataset for the task, choose either \"Citeseer\" or \"Cora\".")
         print(f"Doing Node Classification on Dataset {dataset}.")
         classify_nodes(dataset)
-    
+
     else:
         raise ValueError("Wrong task, you may only choose between \"link\" and \"node\" for link prediction and node classification, respectively.")
