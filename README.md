@@ -44,6 +44,8 @@ or
 where `<TASK>` is either `node` or `link` for Exercise 3 and 4, respectively, and <br>
 where `<DATASET>` is one of `Cora`, `Citeseer` for Ex.3, and  `Facebook`, `PPI` for Ex.4.
 
+All the other files in `src` are clearly named accoring to their respective exercises and can be executed independendly to yield sample results.
+
 
 ## Chosen Hyperparameters
 
@@ -64,10 +66,10 @@ We used an HPO to find these.
 For Exercise 4, the following hyperparameters were used for each dataset:<br>
 These were discovered by good intuition after the HPO for task 3.
 
-Dataset | sched | C | batch_size | delta | dim | l | l_ns | lr | n_epochs | p | q
-------- | ----- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---
-Facebook | - | - | 2000 | - | 128 | 5 | 5 | 0.01 | 100 | 1.0 | 1.0
-PPI | - | - | 2000 | - | 128 | 5 | 5 | 0.01 | 100 | 1.0 | 1.0
+| Dataset  | sched | C   | batch_size | delta | dim   | l   | l_ns | lr   | n_epochs | p   | q   |
+|----------|-------|-----|------------|-------|-------|-----|------|------|----------|-----|-----|
+| Facebook | -     | -   | 2000       | -     | 128   | 5   | 5    | 0.01 | 100      | 1.0 | 1.0 |
+| PPI      | -     | -   | 2000       | -     | 128   | 5   | 5    | 0.01 | 100      | 1.0 | 1.0 |
 
 The non-given values were left at their default values.
 
@@ -75,19 +77,19 @@ The non-given values were left at their default values.
 ## Results
 
 ### Ex. 3
-__Mean ± StD of Accuracy, rounded in %:__
-Dataset ↓ , p,q →| 1.0, 0.1    | 0.1, 1.0     | 1.0, 1.0
-:--------------- | :---------: | :----------: | :----------:
-Cora             | 85.3 ± 1.93 | 85.78 ± 1.73 | 84.38 ± 2.42
-Citeseer         | 63.56 ± 2.0 | 59.78 ± 2.31 | 63.22 ± 2.62
+__Mean ± StD of Accuracy (rounded in %)__
+| Dataset ↓ , p,q →| 1.0, 0.1    | 0.1, 1.0     | 1.0, 1.0     |
+| :--------------- | :---------: | :----------: | :----------: |
+| Cora             | 85.3 ± 1.93 | 85.78 ± 1.73 | 84.38 ± 2.42 |
+| Citeseer         | 63.56 ± 2.0 | 59.78 ± 2.31 | 63.22 ± 2.62 |
 
 
 ### Ex. 4
-__Mean ± StD - rounded in % - of:__
-Dataset  | Accuracy    | ROC-AUC
-:------- | :---------: | :----------:
-Facebook | 97.7 ± 1.29 | 97.78 ± 1.28
-PPI      | 86.79 ± 4.4 | 86.8 ± 4.34
+__Mean ± StD (rounded in %) of__
+| Dataset  | Accuracy    | ROC-AUC      |
+| :------- | :---------: | :----------: |
+| Facebook | 97.7 ± 1.29 | 97.78 ± 1.28 |
+| PPI      | 86.79 ± 4.4 | 86.8 ± 4.34  |
 
 
 ## Discussion
@@ -118,7 +120,7 @@ Luckily though, none of these issues seemed to lead to much of a performance los
 ### Note on Exercise Split
 
 David laid much of the groundwork for random walks (Ex.1), node2vec (Ex.2), node classification (Ex.3) & link prediction (Ex.4).
-Benedict greatly improved upon David's code by making it faster, especially making the random walks more parallelized.
-Moreover he did the HPO for Ex.3 and intuited good hyperparameters for Ex.4.
-For Ex.4 he improved upon the edge sampling by introducing the building of the spanning trees to avoid the removal of connecting edges between train. & eval. edge sets.
-Ahmet developed all his code side-by-side. Benedict cleaned and submitted his forked code in the end.
+Benedict greatly improved upon David's code by making it faster and more parallelized, especially for random walks.
+He also did the HPO for Ex.3, intuited good hyperparameters for Ex.4 and wrote `main.py`.
+Moreover for Ex.4 Benedict improved upon the edge sampling by introducing the building of the spanning trees to avoid the removal of connecting edges between train. & eval. edge sets.
+Ahmet developed all his code side-by-side, yielding some results of his own. Benedict cleaned and submitted his forked code in the end.
