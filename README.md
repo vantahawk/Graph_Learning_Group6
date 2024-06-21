@@ -74,11 +74,13 @@ the non-given values were left at their default values.
 ## Results
 
 ### Ex. 3
+__Accuracy in %__
+Dataset \ p,q=| 1,.1 | .1,1 | 1,1
+---: | :---: | :---: | :---:
+Cora | 85.3 ± 1.93 | 85.78 ± 1.73 | 84.38 ± 2.42
+CiteSeer | 63.56 ± 2.0 | 59.78 ± 2.31 | 63.22 ± 2.62
 
-Dataset | Accuracy in %
----: | :---:
-Cora | 85.3 ± 1.93
-CiteSeer | 63.56 ± 2.0
+
 
 ### Ex. 4
 
