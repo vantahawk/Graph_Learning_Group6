@@ -1,10 +1,8 @@
 # external imports
-#import networkx as nx
 import numpy as np
 import torch as th
 from torch.nn import Module, Parameter
-#import torch.nn.functional as F
-from torch.nn.init import kaiming_normal_, kaiming_uniform_, normal_, uniform_, xavier_normal_, xavier_uniform_
+from torch.nn.init import kaiming_normal_#, kaiming_uniform_, normal_, uniform_, xavier_normal_, xavier_uniform_
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
@@ -18,7 +16,7 @@ class Node2Vec(Module):
     def __init__(self, n_nodes: int, dim: int, l: int) -> None:
         super().__init__()
 
-        # main attributerw_batch
+        # main attributes of rw_batch
         #self.n_nodes = n_nodes  # number of nodes
         #self.dim = dim  # embedding dimension
         self.l = l  # random walk length
@@ -38,9 +36,10 @@ class Node2Vec(Module):
         '''forward fct. of node2vec embedding, takes batch matrix (2D) of stacked pq-walk data, returns scalar value of mean loss fct. over pq-walk batch (simplified, see conversion) as def. in sheet/script'''
         sum_loss = th.tensor(0.)  # initialize sum of loss values
         for rw_vec in list(rw_batch):  # run over pq-walk data vectors in batch
+            cutoff = self.l + 1  # re-split pq-walk data vector
             X_start = self.X[rw_vec[0]]  # embedding vec. of start node (X_s)
-            walk_idx = rw_vec[: self.l + 1]  # selection from X acc. to pq-walk nodes, including start node
-            neg_idx = rw_vec[self.l + 1 :]  # selection from X acc. to negative samples
+            walk_idx = rw_vec[: cutoff]  # selection from X acc. to pq-walk nodes, including start node
+            neg_idx = rw_vec[cutoff :]  # selection from X acc. to negative samples
             numerator_term = th.sum(th.matmul(self.X[walk_idx[1 :]], X_start), -1)  # see conversion of loss-fct., using walk_idx w/o start node
 
             # FIXME whether to reassign walk_idx to only include each node once (i.e. interpret pq-walk "w" as set rather than sequence in denominator term), interpretation in script/sheet unclear, (de)comment the following line accordingly:
@@ -65,7 +64,7 @@ class Node2Vec(Module):
 
 def train_node2vec(dataset: RW_Iterable, dim: int, l: int,  # main parameters, see sheet
                    n_batches: int, batch_size: int, device: str,  # extra parameters
-                   lr: float = 0.001) -> np.ndarray:  # default learning rate
+                   lr: float = 0.01) -> np.ndarray:  # learning rate  # standard: lr: float = 0.001  # our default: lr: float = 0.01
     '''trains node2vec model on given graph w/ Adam optimizer, using [batch_size] random walks w/ parameters p, q, l, l_ns & embedding [dim]'''
     # prepare dataloader, model & optimizer
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=0)  # single-process
@@ -95,7 +94,7 @@ if __name__ == "__main__":
     import pickle
 
     device = ("cuda" if th.cuda.is_available() else "mps" if th.backends.mps.is_available() else "cpu")  # choose by device priority
-    batch_size = 10
+    batch_size = 10 #10 #100 #1000
     n_batches = 100
     dim = 128 #12
     p = 1.0
