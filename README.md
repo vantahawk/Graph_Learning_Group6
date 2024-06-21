@@ -104,8 +104,8 @@ Yet it must be noted that the computation of the tensor of Hadamard products `XX
 We initially had trouble reaching the desired thresholds until we ran the HPO for Ex.3 and intuited better hyperparameters for Ex.4, e.g. more and much larger batches.
 
 For Ex.3 we again have wandb reports:<br>
-[Cora Report](https://wandb.ai/gerlach/labcourse_node2vec_Cora_fixed/reports/Cora-Wandb-Report--Vmlldzo4NDA0Mzgx)
-[Citeseer Report](https://wandb.ai/gerlach/labcourse_node2vec_Citeseer_fixed/reports/Citeseer-Wandb-Report--Vmlldzo4NDA0Mzk4)
+[Cora Report](https://api.wandb.ai/links/gerlach/qmpga3sb)
+[Citeseer Report](https://api.wandb.ai/links/gerlach/fc1xx2y8)
 
 
 ## Conclusion
