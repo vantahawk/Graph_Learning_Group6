@@ -37,9 +37,6 @@ class RW_Iterable(IterableDataset):
     def __init__(self, graph: nx.Graph, p: float, q: float, l: int, l_ns: int,  # main parameters, see sheet
                  batch_size: int, set_node_labels: bool, n_workers:int=-1) -> None:  # extra parameters
         super().__init__()
-
-        #TODO: make sampling use multiprocessing
-
         # main graph attributes
         #self.graph = graph  # full nx.Graph
         adj_mat:np.ndarray = nx.adjacency_matrix(graph).toarray()  # int32-np.ndarray
@@ -75,7 +72,7 @@ class RW_Iterable(IterableDataset):
 
     def rw_batch(self) -> list[np.ndarray]:
         '''returns batch (list) of pq-walk data, each including: random start node, followed by l nodes of random pq-walk, followed by l_ns negative samples, concatenated into 1D-np.ndarray'''
-        
+
         #submit tasks to the pool
         global worker_pool
         if worker_pool is None:
@@ -83,11 +80,11 @@ class RW_Iterable(IterableDataset):
         b = self.batch_size
         self.sampled_walks += b #count the number of sampled walks, so that seed can be different for each batch
         return worker_pool.starmap(self.random_walk, zip(repeat(self.n_nodes,b), repeat(self.adj_shape,b), repeat(self.l,b), repeat(self.l_ns,b), repeat(self.p,b), repeat(self.q,b), range(self.sampled_walks-b, self.sampled_walks)))
-        
+
     @staticmethod
     def random_walk(n_nodes:int, adj_shape, l, l_ns, p, q, seed:int)->np.ndarray:
         """returns pq-walk data array, including: random start node, followed by l nodes of random pq-walk, followed by l_ns negative samples, concatenated into 1D-np.ndarray
-        
+
         Args:
             n_nodes (int): number of nodes in the graph
             adj_shape (tuple): shape of the adjacency matrix
@@ -96,7 +93,7 @@ class RW_Iterable(IterableDataset):
             p (float): return parameter
             q (float): in-out parameter
             seed (int): seed for the random number generator
-        
+
         Returns:
             np.ndarray: pq-walk data array, consisting of the random start node, followed by l nodes of random pq-walk, followed by l_ns negative samples"""
         # last node, initially the uniformly sampled start node
@@ -114,11 +111,13 @@ class RW_Iterable(IterableDataset):
         # current node, initially the 2nd node of pq-walk, uniformly sampled from neighborhood of start node
         current = rng.choice(n_nodes, size=None, replace=True, p = start_nbh / np.sum(start_nbh), axis=0, shuffle=True)
 
-        pq_walk = np.zeros((l,), dtype=np.int32)
+        #pq_walk = np.zeros((l,), dtype=np.int32)
+        pq_walk = np.zeros((l + 1,), dtype=np.int32)
         pq_walk[0] = last
         pq_walk[1] = current
 
-        for step in range(2,l):  # sample the l-1 next nodes in pq-walk using algebraic construction of alpha (see def. in script/sheet)
+        #for step in range(2, l):  # sample the l-1 next nodes in pq-walk using algebraic construction of alpha (see def. in script/sheet)
+        for step in range(2, l + 1):
             current_nbh = adj_mat[current]  # neighborhood of current node repres. as its adj.mat.row
             # common neighborhood of last & current node, repres. as elem-wise product of resp. adj.mat.rows, accounts for 2nd row in def. of alpha
             common_nbh = np.multiply(adj_mat[last], current_nbh)
@@ -191,4 +190,3 @@ if __name__ == "__main__":
         worker_pool.join()
     end = timer()
     print(f"Time elapsed: {end - start:.2f} s")
-
