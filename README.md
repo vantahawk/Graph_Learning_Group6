@@ -46,7 +46,7 @@ where `<DATASET>` is one of `Cora` or `Citeseer` for Ex.3, and  `Facebook` or `P
 
 By default `node` classification runs for `p = 1.0, q = 0.1`. Other values for `p, q` (as well as for other parameters) can be set independendly for `Cora` & `Citeseer` by (de)commenting their resp. dictionaries in function `main()` in `node_class.py`.
 
-All the other files in `src` are clearly named accoring to their respective exercises and can be executed independendly to yield sample results.
+All files in `src` are clearly named accoring to their respective exercises and can be executed independendly to yield sample results.
 
 
 ## Chosen Hyperparameters
@@ -73,7 +73,7 @@ These were discovered by good intuition after the HPO for task 3.
 | Facebook | -     | -   | 2000       | -     | 128   | 5   | 5    | 0.01 | 100      | 1.0 | 1.0 |
 | PPI      | -     | -   | 2000       | -     | 128   | 5   | 5    | 0.01 | 100      | 1.0 | 1.0 |
 
-The non-given values were left at their default values.
+The values not given were left at their default values.
 
 
 ## Results
@@ -85,7 +85,6 @@ __Mean ± StD of Accuracy (rounded in %)__
 | Cora              | 85.3 ± 1.93 | 85.78 ± 1.73 | 84.38 ± 2.42 |
 | Citeseer          | 63.56 ± 2.0 | 59.78 ± 2.31 | 63.22 ± 2.62 |
 
-The results
 
 ### Ex. 4
 __Mean ± StD (rounded in %) for p = q = 1.0__
@@ -115,7 +114,7 @@ For Ex.3 we again have wandb reports:<br>
 
 This task was more successful than the last ones in achieving the desired results. Accounting for said memory issues, the implementation itself as well as the HPO were relatively fast.
 
-There were however some ambiguities in the exercise: For example whether w & w' in the sum in the denominator of the loss function should be interpreted as set or sequence, i.e. if they may contain repeated nodes. Moreover all the graphs - except that for `Facebook` - contained connected components with less than two edges - e.g. singular nodes with self-loops. Since these could not satisfy the connectivity conditions set forth for edge sampling, we opted to remove them before edge sampling.
+There were however some ambiguities in the exercise: For example whether w & w' in the sum in the denominator of the loss function should be interpreted as sets or sequences, i.e. if they may contain repeated nodes. Moreover all the graphs - except that for `Facebook` - contained connected components with less than two edges - e.g. singular nodes with self-loops - which thus could not satisfy the connectivity conditions set forth for edge sampling in link prediction.
 
 Luckily though, none of these issues seemed to lead to much of a performance loss. Likely because (a) the computed loss function values are still similar enough for both the set & sequence interpretation of w & w' in the denominator, and (b) because these too small connected components are negligable compared to the one or few largest ones.
 
@@ -124,12 +123,12 @@ Luckily though, none of these issues seemed to lead to much of a performance los
 ### Note on Exercise Split
 
 David laid much of the groundwork for random walks (Ex.1), node2vec (Ex.2), node classification (Ex.3) & link prediction (Ex.4).
-Benedict greatly improved upon David's code by making it faster and more parallelized, especially for random walks.
+Benedict greatly improved upon David's code by making it faster and adding more parallelization, especially for random walks.
 He also did the HPO for Ex.3, intuited good hyperparameters for Ex.4 and wrote `main.py`.
-Moreover for Ex.4 Benedict improved upon the edge sampling by introducing the building of the spanning trees to avoid the removal of connecting edges between train. & eval. edge sets.
+Moreover for Ex.4 Benedict improved upon the edge sampling by introducing the building of spanning trees to avoid the removal of connecting edges within train. & eval. edge sets.
 Ahmet developed all his code side-by-side, yielding some results of his own. Benedict cleaned and submitted his forked code in the end.
 
 
 ### Later Improvements
 
-On `david/sheet4` the memory issue for the computation of `XX` in link prediction was resolved simply by only taking the Hadamard products over the sampled edges rather than the complete graph. For some unforseen reason however the same issue could not yet be resolved for Benedict's version on `main` while maintaining the previous performance. The main difference between the two versions is the use of spanning trees for edge sampling in the latter, so we can only guess that it has something do with that.
+On `david/sheet4` the memory issue for the computation of `XX` in link prediction was resolved simply by only taking the Hadamard products over the sampled edges rather than the complete graph. However for some unforseen reason the same issue could not yet be resolved for Benedict's version on `main` while maintaining the previous performance. We can only guess that it has something to do with the different edge sampling strategies used in the versions.
