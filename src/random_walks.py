@@ -36,7 +36,7 @@ class RW_Iterable(IterableDataset):
 
     def rw_batch(self) -> list[np.ndarray]:
         '''returns batch (list) of pq-walk data, each including: random start node, followed by l nodes of random pq-walk, followed by l_ns negative samples, concatenated into 1D-np.ndarray'''
-        batch = np.empty((self.batch_size, self.walk_dim + self.l_ns), dtype=np.int32)  # ...in np.array
+        batch = np.zeros((self.batch_size, self.walk_dim + self.l_ns), dtype=np.int32)  # ...in np.array
 
         for walk in range(self.batch_size):
             # last node, initially the uniformly sampled start node
@@ -45,14 +45,15 @@ class RW_Iterable(IterableDataset):
             # current node, initially the 2nd node of pq-walk, uniformly sampled from neighborhood of start node
             current = self.rng.choice(self.n_nodes, size=None, replace=True, p = start_nbh / np.sum(start_nbh), axis=0, shuffle=True)
             # collect sampled nodes of pq-walk array
-            pq_walk = np.empty(self.walk_dim, dtype=np.int32)
+            pq_walk = np.zeros(self.walk_dim, dtype=np.int32)
             pq_walk[0], pq_walk[1] = last, current
 
             # sample the l-1 next nodes in pq-walk using algebraic construction of alpha (see def. in script/sheet)
             for node in range(2, self.walk_dim):
                 current_nbh = self.adj_mat[current]  # neighborhood of current node repres. as its adj.mat.row
                 # common neighborhood of last & current node, repres. as elem-wise product of resp. adj.mat.rows, accounts for 2nd row in def. of alpha
-                common_nbh = np.multiply(self.adj_mat[last], current_nbh)
+                #common_nbh = np.multiply(self.adj_mat[last], current_nbh)
+                common_nbh = self.adj_mat[last] * current_nbh
                 # alpha repres. as array of disc. probab.s over all nodes (not norm.ed), hence the use of adj.mat.rows to represent neighborhoods
                 alpha = common_nbh + (current_nbh - common_nbh) / self.q  # accounts for 1st & 2nd row in def. of alpha
                 alpha[last] = 1 / self.p  # accounts for 3rd row in def. of alpha (step back to last node)

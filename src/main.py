@@ -79,7 +79,8 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--p', nargs='?', default=1.0, const=1.0, type=float, help="parameter p for pq-walk, ~BFS")
     parser.add_argument('-q', '--q', nargs='?', default=1.0, const=1.0, type=float, help="parameter q for pq-walk, ~DFS")
     parser.add_argument('-l', '--l', nargs='?', default=5, const=5, type=int, help="parameter l for pq-walk: walk length")
-    parser.add_argument('-lns', '--l_ns', nargs='?', default=5, const=5, type=int, help="parameter l for pq-walk: number of negative node samples")
+    parser.add_argument('-lns', '--l_ns', nargs='?', default=5, const=5, type=int,
+                        help="parameter l_ns for pq-walk: number of negative node samples")
     parser.add_argument('-d', '--dim', nargs='?', default=128, const=128, type=int, help="feature dimension of node2vec embedding tensor X")
     parser.add_argument('-nb', '--n_batches', nargs='?', default=100, const=100, type=int, help="number of pq-walk batches")
     parser.add_argument('-bs', '--batch_size', nargs='?', default=1000, const=1000, type=int, help="number of pq-walks per batch")
@@ -91,6 +92,7 @@ if __name__ == "__main__":
     parser.add_argument('-lr', '--lr', nargs='?', default=0.01, const=0.001, type=float, help="learning rate for Adam optimizer in node2vec")
 
     args = parser.parse_args()  # parse from command line or pass string manually w/ .split()
+    # run full implementation
     main(args.datasets, args.p, args.q, args.l, args.l_ns, args.dim,  # main parameters, see sheet
          args.special, args.n_batches, args.batch_size, args.return_train_score,  # extra parameters
          args.k, args.eval_share, args.lr)  # run w/ parsed arguments
