@@ -76,25 +76,28 @@ def edge_sampler(rng: Generator, edges_connec_comp_cleaned: list[np.ndarray], ed
         """Converts 1d edges into a 2d representation, by dividing the 1d edges by n_nodes and taking the modulo to get the first and second node respectively."""
         return np.array(np.divmod(edges, n_nodes)).T
     
+    eval_edges:list[np.ndarray] = [None] * len(edges_connec_comp_cleaned)
+
     #now we have the minimum spanning trees, we can sample so that we ignore their edges
     #for that we exclude the tree from the available edges
-    for c, comp in enumerate(edges_connec_comp_cleaned):
+    for c, comp_ in enumerate(edges_connec_comp_cleaned):
         #skip empty edge trees, might happen if there are single node components with self loops
         if edge_trees[c].shape[0] == 0:
             continue
+        comp = deepcopy(comp_)
         #convert the edges to 1D
         comp1d = convert2DEdges1D(comp, n_nodes)
         tree1d = convert2DEdges1D(edge_trees[c], n_nodes)
         #diff the tree out of the component
         comp1d = np.setdiff1d(comp1d, tree1d)
         #convert back to 2D
-        edges_connec_comp_cleaned[c] = convert1DEdges2D(comp1d, n_nodes)
+        eval_edges[c] = convert1DEdges2D(comp1d, n_nodes)
 
 
     # positive edge samples for evaluation: ca. [eval_share] of edges within each (valid) connec. comp. uniformly sampled (at least 1), concatenated & index-mapped
     pos_samples_eval = idx_map(np.concatenate(
             [rng.choice(comp_edges, size=int(np.ceil(eval_share * len(comp_edges))), replace=False, p=None, axis=0, shuffle=False)
-                for comp_edges in edges_connec_comp_cleaned
+                for comp_edges in eval_edges
             ], 
             axis=0
         ), 
@@ -116,8 +119,9 @@ def edge_sampler(rng: Generator, edges_connec_comp_cleaned: list[np.ndarray], ed
     ).difference(idx_map(np.concatenate([edges, np.flip(edges, axis=-1)], axis=0), n_nodes))
 
     # uniformly sample negative samples for resp. edge index maps from overall negative edges
-    neg_samples_eval = rng.choice(list(neg_samples), size=len(pos_samples_eval), replace=False, p=None, axis=0, shuffle=False)
-    neg_samples_train = rng.choice(list(neg_samples.difference(neg_samples_eval)), size=len(pos_samples_train), replace=False, p=None, axis=0, shuffle=False)
+    neg_samples_train = rng.choice(list(neg_samples), size=len(pos_samples_train), replace=False, p=None, axis=0, shuffle=False)
+    neg_samples_eval = rng.choice(list(neg_samples.difference(neg_samples_train)), size=len(pos_samples_eval), replace=False, p=None, axis=0, shuffle=False)
+    
 
     return list(pos_samples_train), list(neg_samples_train), list(pos_samples_eval), list(neg_samples_eval)  # return positive & negative edge index samples from eval & train edge sets
 
