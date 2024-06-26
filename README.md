@@ -1,5 +1,7 @@
 # Explanation and Setup for the Code of Group 6 for Sheet 4
 
+(copy from `main` branch)
+
 ## Requirements
 
 Use Python 3.12, other versions have not been tested and are thus not necessarily working.
@@ -27,92 +29,110 @@ BATCH/CMDLine
 
 ## How to run
 
-How to run code for Ex.3 & 4:
+### How to run code for Ex.3 & 4:
 
 ```batch
 ::ON WINDOWS cmdline
-...\group6> python main.py
+...\group6> python src/main.py --task <TASK> --dataset <DATASET>
 ```
 
 or
 
 ```bash
 # ON LINUX
-.../group6$ python main.py
+.../group6$ python src/main.py --task <TASK> --dataset <DATASET>
 ```
 
-TODO (update & finish readme)
+where `<TASK>` is either `node` or `link` for Ex.3 or 4 respectively, and <br>
+where `<DATASET>` is one of `Cora` or `Citeseer` for Ex.3, and  `Facebook` or `PPI` for Ex.4.
 
-...runs the evaluation (Ex.6) on all 3 ZINC datasets ['Train', 'Val', 'Test'] and for all 3 scatter aggregation types ['sum', 'mean', 'max'] once in said orders (9 results total). Alternatively specific datasets and/or scatter-types can be chosen by setting the resp. keywords as stated here as optional arguments; datasets after flag `-d` and scatter-types after flag `-s`, all separated by spaces. E.g. in order to evaluate ZINC_Val & ZINC_Test using scatter_max & scatter_sum, set:
+By default `node` classification runs for `p = 1.0, q = 0.1`. Other values for `p, q` (as well as for other parameters) can be set independendly for `Cora` & `Citeseer` by (de)commenting their resp. dictionaries in function `main()` in `node_class.py`.
 
-`python main.py -d Val Test -s max sum`
-
-Training is always done on ZINC_Train. The same info can also be found with the `--help` or `-h` flag like so: `python main.py -h`
-
-Since scatter_sum often yielded the best results, it may suffice to run only that like so: `python main.py -s sum`
-
-The remaining exercises 1-5 are covered by the python files in `src`, where each file covers one exercise:
-
-Ex.1: `dataset.py`, Ex.2: `collation.py`, Ex. 3: `layer.py`, Ex.4: `pooling.py`, Ex.5: `virtual_node.py`
+All files in `src` are clearly named accoring to their respective exercises and can be executed independendly to yield sample results.
 
 
-## Ex. 6
+## Chosen Hyperparameters
 
-### Attributes & Parameters
+### Ex. 3
 
-We used the optimizer 'Adam' and the l1-loss function. scatter_sum turned out to be the most promising aggregation type.
+For Exercise 3, the following hyperparameters were used for each dataset:<br>
+We used an HPO to find these.
 
-- Training
-    - batch size: 10
-    - number of epochs: 20
-- GNN
-    - number of GNN layers: 2
-    - dimension between GNN layers: 5
-- Message function (M)
-    - number of M layers: 1
-    - hidden dimension of M: 5
-    - activation function of M layers: ReLU
-- Update function (U)
-    - number of U layers: 2
-    - hidden dimension of U: 5
-    - activation function of hidden U layers: ReLU
-- Virtual Nodes (VN)
-    - use virtual nodes: Yes
-    - number of VN-MLP layers: 1
-    - activation function of VN- MLP layers: ReLU
-- (Post-Pooling) MLP
-    - number of MLP layers: 2
-    - hidden dimension of MLP: 5
-    - activation function of hidden MLP layers: ReLU
 
-### Results for Ex. 6
+| Dataset   | sched    | C      | batch_size | delta       | dim  | l   | l_ns | lr       | n_epochs | p   | q   |
+|-----------|----------|--------|------------|-------------|------|-----|------|----------|----------|-----|-----|
+| Cora      | plateau  | 98.533 | 8726       | 0.005616    | 128  | 5   | 5    | 0.006572 | 250      | 1   | 0.1 |
+| CiteSeer  | linear   | 48.541 | 9742       | 0.00001324  | 128  | 5   | 5    | 0.0968   | 200      | 1   | 0.1 |
 
-Mean Absolute Error (rounded) on the ZINC datasets, for each scatter aggregation type:
 
-| Scatter ↓ , Dataset → | Train | Val  | Test |
-| :-------------------- | :---- | :--- | :--- |
-| SUM                   |  0.49 | 0.49 | 0.54 |
-| MEAN                  |  0.56 | 0.57 | 0.62 |
-| MAX                   |  0.55 | 0.57 | 0.62 |
+### Ex. 4
+
+For Exercise 4, the following hyperparameters were used for each dataset:<br>
+These were discovered by good intuition after the HPO for task 3.
+
+| Dataset  | sched | C   | batch_size | delta | dim   | l   | l_ns | lr   | n_epochs | p   | q   |
+|----------|-------|-----|------------|-------|-------|-----|------|------|----------|-----|-----|
+| Facebook | -     | -   | 2000       | -     | 128   | 5   | 5    | 0.01 | 100      | 1.0 | 1.0 |
+| PPI      | -     | -   | 2000       | -     | 128   | 5   | 5    | 0.01 | 100      | 1.0 | 1.0 |
+
+The values not given were left at their default values.
+
+
+## Results
+
+### Ex. 3
+__Mean ± StD of Accuracy (rounded in %)__
+| Dataset ↓ , p,q → | 1.0, 0.1    | 0.1, 1.0     | 1.0, 1.0     |
+| :---------------- | :---------: | :----------: | :----------: |
+| Cora              | 85.3 ± 1.93 | 85.78 ± 1.73 | 84.38 ± 2.42 |
+| Citeseer          | 63.56 ± 2.0 | 59.78 ± 2.31 | 63.22 ± 2.62 |
+
+
+### Ex. 4
+__Mean ± StD (rounded in %) for p = q = 1.0__
+| Dataset  | Accuracy    | ROC-AUC      |
+| :------- | :---------: | :----------: |
+| Facebook | 97.7 ± 1.29 | 97.78 ± 1.28 |
+| PPI      | 86.79 ± 4.4 | 86.8 ± 4.34  |
 
 
 ## Discussion
 
-The mean absolute error (MAE) develops generally as expected, with MAEs decaying roughly asymptotically for all 3 datasets with increasing epochs; usually most for ZINC_Train, less so for ZINC_Val and least for ZINC_Test.
+For Citeseer finding good hyperparameters was difficult, which is why we ran an HPO for that.
+For Cora, the results are much better than the requested threshold, whereas for Citeseer, it is relatively tight.
 
-Unfortunately though we did not manage to reach the target MAE of 0.2 for ZINC_Test.
+For link prediction, the results are very good, reaching high ROC-AUC scores and accuracies well above the requested thresholds. The hyperparameters were relatively easy to find.
 
-Generally more than 2-5 GNN layers did not yield notably better or yielded worse results and only extended computation time unnecessarily. Performance and computation time also tend to worsen for a number of epochs below or high above a magnitude of around 10.
+Yet it must be noted that the computation of the tensor of Hadamard products `XX` is rather memory-inefficient and may thus lead to memory issues, e.g. RAM spillovers and associated slowdowns. We tried to fix this issue by finding a more elegant way of mapping/indexing edges to `XX` but have yet to iron things out.
 
-Errors within dataset.py, collation.y or layer.py were considered as reasons for the subpar performance, but none were found and we figured, if present, they would yield much worse results even. There might be issues in how the layer module (lists) in GNN_Layer are constructed, but we also found no further error in there.
+We initially had trouble reaching the desired thresholds until we ran the HPO for Ex.3 and intuited better hyperparameters for Ex.4, e.g. more and much larger batches.
+
+For Ex.3 we again have wandb reports:<br>
+[Cora Report](https://api.wandb.ai/links/gerlach/qmpga3sb)
+[Citeseer Report](https://api.wandb.ai/links/gerlach/fc1xx2y8)
 
 
 ## Conclusion
 
-As mentioned, we likely have yet to find some error of construction somewhere, before we can hope to reach the target MAE.
+This task was more successful than the last ones in achieving the desired results. Accounting for said memory issues, the implementation itself as well as the HPO were relatively fast.
+
+There were however some ambiguities in the exercise: For example whether w & w' in the sum in the denominator of the loss function should be interpreted as sets or sequences, i.e. if they may contain repeated nodes. Moreover all the graphs - except that for `Facebook` - contained connected components with less than two edges - e.g. singular nodes with self-loops - which thus could not satisfy the connectivity conditions set forth for edge sampling in link prediction. At best they might act as redundant edges within the training set. We incdluded an option to remove these invalid connected components from the full edge set beforehand.
+
+Luckily though, none of these issues seemed to lead to much of a performance loss. Likely because (a) the computed loss function values are still similar enough for both the set & sequence interpretation of w & w' in the denominator, and (b) because these too small connected components are negligable compared to the one or few largest ones.
 
 ---
 
 ### Note on Exercise Split
 
-In part due to difficult time constraints on both Benedict and Ahmet, David ended up providing most of the codebase (`david/sheet3`) this time around. Benedict greatly helped to further debug and refine the code, and ran a hyperparameter optimization over the parameters mentioned in the list above. Ahmet also made himself available for further improvements on the code.
+David laid much of the groundwork for random walks (Ex.1), node2vec (Ex.2), node classification (Ex.3) & link prediction (Ex.4).
+Benedict greatly improved upon David's code by making it faster and adding more parallelization, especially for random walks.
+He also did the HPO for Ex.3, intuited good hyperparameters for Ex.4 and wrote `main.py`.
+Moreover for Ex.4 Benedict improved upon the edge sampling by introducing the building of minimum spanning trees to avoid the removal of connecting edges within train. & eval. edge sets.
+Ahmet developed all his code side-by-side, yielding some results of his own. Benedict cleaned and submitted his forked code in the end.
+
+
+### Later Improvements
+
+On `david/sheet4` the memory issue for the computation of `XX` in link prediction was resolved simply by only taking the Hadamard products over the sampled edges rather than the complete graph. However for some unforseen reason the same issue could not yet be resolved for Benedict's version on `main` while maintaining the previous performance. We can only guess that it has something to do with the different edge sampling strategies used in the versions.
+
+Two more edge sampling strategies for link prediction were optionally added to `david/sheet4`: One which uses minimum spanning trees similar to Benedict's version, and another one which simply re-samples true training edge sets from each connected component until one with a connected subgraph is found. Whereas the tree strategy runs reliably but slow, the re-sampling strategy may not necessarily terminate.

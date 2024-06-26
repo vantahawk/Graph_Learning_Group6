@@ -46,7 +46,7 @@ def main(datasets: list[str], p: float, q: float, l: int, l_ns: int, dim: int,  
             with open('datasets/' + dataset + '/data.pkl', 'rb') as data:
                 graph = pickle.load(data)[0]
             for pp, qq in [(1.0, 1.0), (0.1, 1.0), (1.0, 0.1)]:
-                results = node_class(graph, p, q, l, l_ns, dim, n_batches, batch_size, device, return_train_score)
+                results = node_class(graph, pp, qq, l, l_ns, dim, n_batches, batch_size, device, return_train_score)
                 print(f"\nMean \u00b1 StD of Accuracy Scores (rounded in %) for p = {pp}, q = {qq}:")
                 for mode, mean, std in results:
                     print(f"{mode}:\t{round(mean * 100, 2)} \u00b1 {round(std * 100, 2)}")
