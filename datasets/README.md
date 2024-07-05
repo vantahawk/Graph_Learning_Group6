@@ -1,8 +1,14 @@
-This file Contains the Cora and Citeseer datasets [1] for node classification.
-We have already split each dataset into training and evaluation data.
+This file Contains the HOLU, CITE and LINK datasets.
 
-For Task 4 you can reuse the ENZYMES and NCI1 datasets provided for Sheet 1.
+HOLU is a graph regression task. 
+The node label is the atomic number with range [1,35].
+The node attributes are the position of the atom as a 3-dimensional real-valued vectors.
+The edge label is the bond type with range [0,3].
+The graph label is a real number.
 
-References:
+CITE is a node classification task. 
+The node label is the scientific field with range [0,3].
+The node attributes are binary encodings of key word occurrences with 1639 dimensions.
 
-[1] Sen, Prithviraj, et al. "Collective classification in network data." AI magazine 29.3 (2008): 93-93.
+LINK is an edge classification task on a directed knowledge graph.
+The edge label is the type of relation with range [0,29].
