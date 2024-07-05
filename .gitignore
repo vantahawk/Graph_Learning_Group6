@@ -10,7 +10,6 @@ __pycache__/
 /smac*/
 /wandb/
 /logs/
-/scripts/
-/jobs/
+
 checkpoint.pt
 .nfs*
