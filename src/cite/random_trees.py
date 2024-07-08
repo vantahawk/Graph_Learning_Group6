@@ -105,6 +105,7 @@ if __name__ == "__main__":
     # for testing streaming, batching, multiprocessing, etc.:
     import pickle
     from psutil import cpu_count
+    from timeit import default_timer
     from torch.utils.data import DataLoader, get_worker_info
     print_progress = True
 
@@ -124,6 +125,7 @@ if __name__ == "__main__":
     #with open('datasets/LINK/data.pkl', 'rb') as data:
         graph = pickle.load(data)#[0]
 
+    t_start = default_timer()
     dataset = RT_Iterable(Sparse_Graph(graph, set_node_labels), p, m, m_ns, batch_size)  # custom iterable dataset instance
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=0)  # turns random walk batches into th.tensors, single-process
 
@@ -131,6 +133,7 @@ if __name__ == "__main__":
     #dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=n_workers, worker_init_fn=worker_split)  # issue w/ worker_split(), produces failed subprocesses
     #dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=n_workers)  # works but returns one batch for each subprocess? also duplicates depending on implementation (expected but not efficiently fixed yet)
 
+    print(f"Time = {(default_timer() - t_start) / 60} mins")
     for run in range(3):
         for batch in dataloader:
             print(batch)

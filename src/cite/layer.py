@@ -59,7 +59,7 @@ class GNN_Layer(Module):
                 ) -> tuple[Tensor, Sparse_Graph]:
         '''forward fct. for single GNN layer, uses scatter-operations w/ start_nodes & end_nodes from edge_idx for message-passing'''
         start_nodes, end_nodes = G.edge_idx[0], G.edge_idx[1]
-        degree_factors_start = G.degree_factors[start_nodes]
+        degree_factors_start = G.degree_factors_start
         degree_factors_end = G.degree_factors
 
         for step in range(self.n_pass):  # scatter node attributes via [n_pass] message passes

@@ -60,16 +60,19 @@ def train_node2vec(dataset: RT_Iterable, dim_n2v: int, m: int,  # main parameter
     optimizer = Adam(model.parameters(), lr=lr_n2v)  # construct optimizer
 
     # stream [n_batches] random p-tree batches from custom iterable dataset & train model on them successively
-    for i in range(n_batches):
+    print("Completed p-tree batches: ", end="")
+    for i in range(1, n_batches + 1):
         for rt_batch in dataloader:  # access single batch in dataloader
             rt_batch = rt_batch.to(device)  # move random tree batch to device
             loss = model(rt_batch)  # forward pass = compute batch-lvl mean loss
             loss.backward()  # backward pass
             optimizer.step()  # SGD step
             optimizer.zero_grad()  # set gradients to zero
+        print(f"{i}, ", end="")
 
+    print("\n")
     model.eval()  # switch model to evaluation mode (optional?)
-    return model.get_parameter('X').detach()  # return embedding matrix X as th.tensor
+    return model.get_parameter('X').detach().type(th.float64)  # return embedding matrix X as th.tensor
     #return model.get_parameter('X').detach().numpy()  # return embedding matrix X as np.ndarray
     #return model.get_parameter('X').detach().to('cpu').numpy()  # move back to CPU first?
     #return model.get_parameter('X').numpy(force=True)  # forced version
@@ -79,6 +82,7 @@ def train_node2vec(dataset: RT_Iterable, dim_n2v: int, m: int,  # main parameter
 if __name__ == "__main__":
     # test node2vec embedding:
     import pickle
+    from timeit import default_timer
     #from torch.cuda import is_available as cuda_is_available
     #from torch.backends.mps import is_available as mps_is_available
 
@@ -100,6 +104,7 @@ if __name__ == "__main__":
     #with open('datasets/LINK/data.pkl', 'rb') as data:
         graph = pickle.load(data)#[0]
 
+    t_start = default_timer()
     dataset = RT_Iterable(Sparse_Graph(graph, set_node_labels), p, m, m_ns, batch_size)  # custom iterable dataset instance
     X = train_node2vec(dataset, dim_n2v, m, n_batches, batch_size, device)
-    print(X[0])
+    print(f"Time = {(default_timer() - t_start) / 60} mins\n{X[0]}")

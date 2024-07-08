@@ -4,8 +4,8 @@ from networkx import DiGraph, MultiDiGraph, Graph, adjacency_matrix, is_directed
 #import numpy as np
 from numpy import array, sum, zeros
 #import torch as th
-from torch import float, long, tensor
-from torch.utils.data import Dataset
+from torch import Tensor, float, float64, long, tensor
+#from torch.utils.data import Dataset
 
 
 """
@@ -27,7 +27,6 @@ def remap(edge_nodes: list[int], node_idx: list[int]) -> list[int]:
 """
 
 
-#class Sparse_Graph(Dataset):  # child of Dataset class, decomment to use in DataLoader
 class Sparse_Graph():  # generic class
     '''implements sparse representation of given, *single* nx.[graph], originally for Graph (like CITE), partially adapted for DiGraph & MulitDiGraph (like LINK) as well, would still need to deal w/ "id" of edges in LINK'''
     def __init__(self, graph: Graph | DiGraph | MultiDiGraph, set_node_labels: bool, set_edge_labels: bool = False
@@ -53,7 +52,7 @@ class Sparse_Graph():  # generic class
         # pre-compute sparse representations of given [graph]:
         self.adj_mat = adjacency_matrix(graph)#.toarray()
         # for degree normalization like in GCN but for using scatter:
-        self.degree_factors = tensor((sum(self.adj_mat.toarray(), axis=-1) + 1) ** -0.5).reshape((self.n_nodes, 1))
+        self.degree_factors = tensor((sum(self.adj_mat.toarray(), axis=-1) + 1) ** -0.5).reshape((self.n_nodes, 1)).type(float64)
         self.nodes_start = [edge[0] for edge in self.edges]  # start nodes all edges in graph
         self.nodes_end = [edge[1] for edge in self.edges]  # end nodes all edges in graph
         # directed edge index list w/ added self-loops for self-message-passing:
@@ -67,6 +66,7 @@ class Sparse_Graph():  # generic class
                                           self.nodes_end + self.nodes_start + self.node_idx_remap])
                                           #- self.first_node  # subtract to account for 1st node index
                                           ).type(long)
+        self.degree_factors_start = self.degree_factors[self.edge_idx[0]]  # slice of degree_factors w.r.t. start nodes in edge_idx
         if set_node_labels:
             # assumes label values start at 0, unused for eval subgraph:
             #self.node_labels = tensor(array([one_hot_encoder(node[1]['node_label'], n_node_labels)  # one-hot encoded
@@ -74,29 +74,16 @@ class Sparse_Graph():  # generic class
             self.node_labels = tensor(array([node[1]['node_label']  # *not* one-hot encoded
                                              for node in self.nodes])).type(long) #.type(long) #.type(float)
         self.node_attributes = tensor(array([node[1]['node_attributes']
-                                             for node in self.nodes])).type(float)  # *not* one-hot encoded
+                                             for node in self.nodes])).type(float64) #.type(float)  # *not* one-hot encoded
         if set_edge_labels:
             self.edge_labels = tensor(array([edge[2]['edge_label'] for edge in self.edges])).type(long) #.type(long) #.type(float)
-
-    """# decomment to use in DataLoader, possibly needs to be adapted for LINK:
-    def __getitem__(self, index: int) -> tuple[Tensor, Tensor]:
-        '''returns part of sparse representation of single, given [graph] all in one as tuple of th.tensors, index is redundant here'''
-        #return super().__getitem__(index)
-
-        # draw edge_idx & degree_factors from constructor:
-        return self.edge_idx, self.degree_factors
-
-
-    def __len__(self) -> int:
-        '''length of dataset/batch, here just 1 for single [graph]'''
-        return 1
-    """
 
 
 
 if __name__ == "__main__":
     # test sparse graph representation:
     import pickle
+    from timeit import default_timer
 
     #with open('datasets/Citeseer/data.pkl', 'rb') as data:
     #with open('datasets/Cora/data.pkl', 'rb') as data:
@@ -107,6 +94,7 @@ if __name__ == "__main__":
         graph = pickle.load(data)#[0]
 
     thresh = 5
+    t_start = default_timer()
     G = Sparse_Graph(graph, False)
-    print(f"{G.n_nodes}\n{G.degree_factors[: thresh]}\n{G.edge_idx[: thresh]}")
+    print(f"Time = {default_timer() - t_start} secs\n{G.n_nodes}\n{G.degree_factors[: thresh]}\n{G.edge_idx[: thresh]}")
     #\n{G.node_labels[: cutoff]}  #\n{G.edge_labels[: cutoff]}  #\n{G.nodes[: cutoff]}\n{G.edges[: cutoff]}\n{G.first_node}

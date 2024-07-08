@@ -4,6 +4,7 @@
 #import networkx as nx
 #from networkx import Graph
 #import numpy as np
+from numpy import argmax#, empty
 #from psutil import cpu_count
 #from sklearn.metrics import accuracy_score#, mean_absolute_error
 from pandas import cut
@@ -108,7 +109,7 @@ def run_model(G_train: Sparse_Graph, G_val: Sparse_Graph,  # sparse graph rep.s 
               device: str, n_epochs: int,  # param.s for running model
               n_MLP_layers: int, dim_MLP: int, dim_n2v: int, n_GNN_layers: int, dim_between: int, dim_U: int, n_U_layers: int,  # core param.s
               l: int = 8, n_pass: int = 1, scatter_type: str = 'sum', lr_gnn: float = 0.001  # possible default param.s
-              ) -> float | list[int]:
+              ) -> tuple[float, float] | list[int]:
     '''runs GNN model on node_attributes from given (sparse rep.s of) training & validation graphs together w/ respective, pre-computed (p-trees-)node2vec & closed walk kernel (CW) embedding slices'''
     # construct GNN model w/ given param.s:
     model = GNN(n_MLP_layers, dim_MLP, dim_n2v, n_GNN_layers, dim_between, dim_U, n_U_layers,  # core param.s
@@ -118,10 +119,11 @@ def run_model(G_train: Sparse_Graph, G_val: Sparse_Graph,  # sparse graph rep.s 
     model.train()  # switch model to training mode
     optimizer = Adam(model.parameters(), lr=lr_gnn)  # construct optimizer
 
+    accuracies = []  # collect accuracies over epochs
     for epoch in range(1, n_epochs + 1):  # run training & evaluation phase for [n_epochs]
         out_train = model(G_train, X_train, W_train)  # forward pass on training graph
         #loss = F.cross_entropy(out_train, G_train.node_labels, reduction='mean')
-        loss = F.cross_entropy(out_train, G_train.node_labels, reduction='sum')
+        loss = F.cross_entropy(out_train, G_train.node_labels, reduction='sum')  # training loss
         loss.backward()  # backward pass
         optimizer.step()  # SGD step
         optimizer.zero_grad()  # set gradients to zero
@@ -133,14 +135,14 @@ def run_model(G_train: Sparse_Graph, G_val: Sparse_Graph,  # sparse graph rep.s 
         with th.no_grad():
             out_val = model(G_val, X_val, W_val)  # evaluate forward fct. on validation graph to predict node_labels thereof
             if G_val.set_node_labels:  # cross-validation mode
-                #loss = F.cross_entropy(out_val, G_val.node_labels, reduction='mean').item()
-                loss = F.cross_entropy(out_val, G_val.node_labels, reduction='sum').item()
                 accuracy_val = accuracy(out_val, G_val.node_labels)  # accuracy on val data
                 # print progress for loss, training accuracy & validation accuracy (rounded):
-                print(f"epoch {epoch}:\tloss: {loss:.4f}\t\tacc_train(%): {accuracy_train_round}\t\tacc_val(%): {accuracy_val * 100:.4f}")
-                return_obj = accuracy_val  # return accuracy on validation graph (for cross-validation)
+                print(f"epoch {epoch}:\tloss_train: {loss.item():.4f}\t\tacc_train(%): {accuracy_train_round}\t\tacc_val(%): {accuracy_val * 100:.4f}")
+                accuracies.append(accuracy_val)  # add val-accuracy
+                if epoch == n_epochs:
+                    return_obj = accuracy_val, argmax(accuracies).astype(float)  # return accuracy & best epoch for validation graph
             else:  # prediction mode
-                print(f"epoch {epoch}:\tacc_train(%): {accuracy_train_round}")
+                print(f"epoch {epoch}:\tloss_train: {loss.item():.4f}\t\tacc_train(%): {accuracy_train_round}")
                 if epoch == n_epochs:
                     return_obj = out_val.argmax(-1).tolist()  # return final node_label prediction (see task)
 
@@ -154,6 +156,7 @@ if __name__ == "__main__":
     from numpy import arange, setdiff1d
     from numpy.random import default_rng
     import pickle
+    from timeit import default_timer
     import torch as th
     #from torch.cuda import is_available as cuda_is_available
     #from torch.backends.mps import is_available as mps_is_available
@@ -192,8 +195,10 @@ if __name__ == "__main__":
     #with open('datasets/LINK/data.pkl', 'rb') as data:
         graph = pickle.load(data)#[0]
 
+    t_start = default_timer()
     cutoff = 1000
     rng = default_rng(seed=None)
+
     #G_full = Sparse_Graph(graph, False)  # sparse rep. of full graph
     #n_nodes = G_full.n_nodes
     n_nodes = graph.number_of_nodes()
@@ -230,3 +235,4 @@ if __name__ == "__main__":
               n_MLP_layers, dim_MLP, dim_n2v, n_GNN_layers, dim_between, dim_U, n_U_layers,  # core param.s
               l, n_pass, scatter_type, lr_gnn  # possible default param.s
               )
+    print(f"\nTime = {(default_timer() - t_start) / 60} mins")
