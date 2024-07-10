@@ -240,6 +240,7 @@ def make_node_features(graphs:list[nx.Graph], dist_dim:int)-> list[np.ndarray]:
 
     #concatenate all features
     node_features = [np.concatenate([node_labels[g], zmatrices[g], distances[g], help_features[g], circles[g], hosoya_indexes[g]], axis=1) for g,_ in enumerate(graphs)]
+    print("Got node_feature dimension:", node_features[0].shape)
     return node_features
 
 def make_edge_features(graphs:list[nx.Graph])->list[np.ndarray]:
@@ -261,7 +262,7 @@ def make_edge_features(graphs:list[nx.Graph])->list[np.ndarray]:
         for e, edge in enumerate(graph.edges()):
             for i in range(2):
                 edge_features[g][2*e+i, -1] = dists[g][get_node_index(graph, edge[0]), get_node_index(graph, edge[1])]
-
+    print("Got edge feature dimension:", edge_features[0].shape)
     return edge_features
 
 class Custom_Dataset(Dataset):

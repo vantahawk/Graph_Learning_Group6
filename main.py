@@ -117,7 +117,7 @@ def main(scatter: list[str], hpo:bool=False) -> None:
         feature_config = yaml.safe_load(f)
     n_circles = feature_config["circle"]["length"]
     n_samples = feature_config["hosoya"]["num_samples"]
-
+    print("Got a maximum of", max_number_nodes, "nodes")
     # construct GNN model of given [scatter_type]
     model = GNN(scatter_type, 
         param_default["use_virtual_nodes"], 
@@ -130,7 +130,7 @@ def main(scatter: list[str], hpo:bool=False) -> None:
         param_default["dim_U"], 
         param_default["n_M_layers"], 
         param_default["n_U_layers"],
-        dim_node=35 + 4 + 7 + 6 + max_number_nodes + n_circles + n_samples,#based on maximum node count and config: 35 + 4 + 7 + 6 + Circle_length + (num_samples+1) + max_node_count
+        dim_node=35 + 4 + 7 + 6 + max_number_nodes + n_circles + n_samples -3,#based on maximum node count and config: 35 + 4 + 7 + 6 + Circle_length + (num_samples+1) + max_node_count, idk why -3
         dim_edge=5,
         mlp_nonlin=param_default["mlp_nlin"],
         m_nonlin=param_default["m_nlin"],
