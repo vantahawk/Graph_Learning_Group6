@@ -5,7 +5,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_validate
 
 # internal imports
-from node2vec import train_node2vec
+from cite.node2vec import train_node2vec
 from random_walks import RW_Iterable
 
 

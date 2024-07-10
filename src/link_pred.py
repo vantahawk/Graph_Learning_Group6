@@ -7,7 +7,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, roc_auc_score
 
 # internal imports
-from node2vec import train_node2vec
+from cite.node2vec import train_node2vec
 from random_walks import RW_Iterable
 
 
