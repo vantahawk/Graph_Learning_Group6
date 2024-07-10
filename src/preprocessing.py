@@ -40,6 +40,7 @@ def normalized_adjacency_matrix(graphs: Graph|List[Graph])->Tensor:
         graphs = [graphs]
 
     max_node_count = max([graph.number_of_nodes() for graph in graphs])
+    print("Max node count is:", max_node_count)
 
     As:List[csr_array|np.ndarray] = [adjacency_matrix(graph) for graph in graphs]
     for i,A in enumerate(As):
@@ -114,7 +115,7 @@ def cwk_node_contributions(graph:nx.Graph, max_length:int=5, array_size:int|None
     if cut_duplicates:
         #remove duplicates, meaning e.g. for a length 12, remove all the subfactor influences
         for i in range(2, max_length//2+1):
-            for j in range(2*i, max_length+1, i):
+            for j in range(2*i, max_length, i):
                 node_scores[:, j] -= node_scores[:, i]
 
         #quite interesting in how the duplicates are removed:

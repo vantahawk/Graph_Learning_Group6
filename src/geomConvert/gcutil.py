@@ -23,7 +23,9 @@
 import numpy as np
 from scipy.spatial.distance import cdist
 import networkx as nx
-
+from math import isnan
+# import sys
+# sys.setrecursionlimit(5000)
 def replace_vars(vlist, variables):
     """ Replaces a list of variable names (vlist) with their values
         from a dictionary (variables).
@@ -147,13 +149,17 @@ def dihedral(xyzarr, i, j, k, l):
     rkj = xyzarr[k] - xyzarr[j]
     rlk = xyzarr[l] - xyzarr[k]
     v1 = np.cross(rji, rkj)
-    v1 = v1 / np.linalg.norm(v1)
+    v1 = v1 / np.linalg.norm(v1) if sum(v1) != 0 else np.zeros(3)
+    assert not np.isnan(v1).any(), f"v1 is None or NaN: {v1}. cross(rji, rkj) = cross({rji}, {rkj})= {np.cross(rji, rkj)}"
     v2 = np.cross(rlk, rkj)
-    v2 = v2 / np.linalg.norm(v2)
-    m1 = np.cross(v1, rkj) / np.linalg.norm(rkj)
+    v2 = v2 / np.linalg.norm(v2) if sum(v2) != 0 else np.zeros(3)
+    assert not np.isnan(v2).any(), f"v2 is None or NaN: {v1}"
+    m1 = np.cross(v1, rkj) / np.linalg.norm(rkj) if sum(rkj) != 0 else np.zeros(3)
+    assert not np.isnan(m1).any(), f"m1 is None or NaN: {m1}"
     x = np.dot(v1, v2)
     y = np.dot(m1, v2)
     chi = np.arctan2(y, x)
+    assert not np.isnan(chi), f"chi is None or NaN: {chi}"
     chi = -180.0 - 180.0 * chi / np.pi
     if (chi < -180.0):
         chi = chi + 360.0
@@ -268,6 +274,7 @@ def zmat_as_ndarray(graph:nx.Graph, xyzarr:np.ndarray, distmat:np.ndarray, atomn
             zmat[n][1] = parent
             zmat[n][2] = distmat[n][parent]
             zmat[n][3] = zmat[parent][1]
+            # assert isinstance(zmat[n][3], (int, np.int64)), f"zmat[{n}][3] is not an int: {zmat[n][3]} - type: {type(zmat[n][3])}"
             zmat[n][4] = angle(xyzarr, zmat[n][3], n, parent)
             
         if count >= 3:
@@ -276,9 +283,13 @@ def zmat_as_ndarray(graph:nx.Graph, xyzarr:np.ndarray, distmat:np.ndarray, atomn
             zmat[n][1] = parent
             zmat[n][2] = distmat[n][parent]
             zmat[n][3] = zmat[parent][1]
+            # assert isinstance(zmat[n][3], int), f"zmat[{n}][3] is not an int: {zmat[n][3]} - type: {type(zmat[n][3])}"
             zmat[n][4] = angle(xyzarr, n, zmat[n][3], parent)
             zmat[n][5] = zmat[parent][3]
-            zmat[n][6] = dihedral(xyzarr, n, zmat[n][5], zmat[n][3], parent)
+            # assert isinstance(zmat[n][5], int), f"zmat[{n}][5] is not an int: {zmat[n][5]} - type: {type(zmat[n][5])}"
+            dihed = np.float64(dihedral(xyzarr, n, parent, zmat[n][3], zmat[n][5]))
+            assert dihed is not None and not isnan(dihed), f"dihed is None or NaN: {dihed}"
+            zmat[n][6] = dihed
 
         #each row is now:
         # ATOM, PARENT, DISTANCE, GRAND-PARENT, ANGLE, GREAT-GRAND-PARENT, DIHEDRAL
@@ -291,14 +302,14 @@ def zmat_as_ndarray(graph:nx.Graph, xyzarr:np.ndarray, distmat:np.ndarray, atomn
         visited[node.id] = 1
 
         for child in graph.neighbors(node.id):
-            if np.where(visited == child)[0].size == 0:
+            if visited[child] == 0:
                 child_node = Node(child)
                 node.add_child(child_node)
                 build_tree(graph, child_node, node,
                             xyzarr, distmat, atomnames, zmat)
 
     tree_root = Node(0)
-    zmat = np.zeros([graph.number_of_nodes(), 7])
+    zmat = np.zeros([graph.number_of_nodes(), 7], dtype=int)
     build_tree(graph, tree_root, Node(-1), xyzarr, distmat, atomnames, zmat)
     
     return zmat

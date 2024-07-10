@@ -27,8 +27,7 @@
 
 import numpy as np
 import argparse
-import gcutil
-from gcutil import distance_matrix, zmat_as_ndarray
+from .gcutil import distance_matrix, zmat_as_ndarray, readxyz, readzmat, write_zmat
 import networkx as nx
 
 def zmat_from_molecule(graph:nx.Graph)->np.ndarray:
@@ -47,11 +46,15 @@ def zmat_from_molecule(graph:nx.Graph)->np.ndarray:
             4. bond-angle-partner-id,  5. bond-angle, 
             6. dihedral-partner-id,    7. dihedral-angle 
     """
-    atomnames = [node for node in graph.nodes(data="node_label")]
-    xyzarr = np.array([node for node in graph.nodes(data="node_attributes")])
+    atomnames = [node[1] for node in graph.nodes(data="node_label")]
+    xyzarr = np.array([node[1] for node in graph.nodes(data="node_attributes")])
+    # print(atomnames[0], xyzarr[0]) #debug-pring
 
     distmat = distance_matrix(xyzarr)
-    return zmat_as_ndarray(graph, xyzarr, distmat, atomnames)
+    zmat = zmat_as_ndarray(graph, xyzarr, distmat, atomnames)
+    assert zmat.shape[0] == len(atomnames), f"Z-matrix shape {zmat.shape} does not match number of atoms {len(atomnames)}"
+    assert zmat.shape[1] == 7, f"Z-matrix shape {zmat.shape} does not have 7 columns"
+    return zmat
 
 ###BORROWED HEAVILY FROM THE ABOVE, BUT MODIFIED TO USE DIRECTLY IN THE CODEBASE
 if __name__ == "__main__":
@@ -75,9 +78,9 @@ if __name__ == "__main__":
         print("Please specify an input geometry")
 
     elif (zmatfilename == None):
-        xyzarr, atomnames = gcutil.readxyz(xyzfilename)
-        distmat = gcutil.distance_matrix(xyzarr)
-        gcutil.write_zmat(xyzarr, distmat, atomnames, rvar=rvar, avar=avar, dvar=dvar)
+        xyzarr, atomnames = readxyz(xyzfilename)
+        distmat = distance_matrix(xyzarr)
+        write_zmat(xyzarr, distmat, atomnames, rvar=rvar, avar=avar, dvar=dvar)
     else:
-        atomnames, rconnect, rlist, aconnect, alist, dconnect, dlist = gcutil.readzmat(zmatfilename)
-        gcutil.write_xyz(atomnames, rconnect, rlist, aconnect, alist, dconnect, dlist)
+        atomnames, rconnect, rlist, aconnect, alist, dconnect, dlist = readzmat(zmatfilename)
+        write_xyz(atomnames, rconnect, rlist, aconnect, alist, dconnect, dlist)

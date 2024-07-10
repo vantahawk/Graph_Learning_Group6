@@ -10,13 +10,12 @@ from torch.nn import Module
 from torch.utils.data import DataLoader, TensorDataset
 import torch
 import torch.nn.functional as F
-from sklearn.preprocessing import StandardScaler
 
 import matplotlib.pyplot as plt
 import itertools
 
 import ctypes as ct
-from .preprocessing import cwk_node_contributions
+from preprocessing import cwk_node_contributions
 import yaml
 import random 
 
@@ -97,7 +96,9 @@ def calculate_hosoya_index(graph:Graph, node:int, dist:int, size:int, seed:int=0
         while level < dist and sum(visited) < size:
             new_queue = []
             for q in queue:
-                for n in random.shuffle(graph.neighbors(q)):
+                neighbors = list(graph.neighbors(q))
+                random.shuffle(neighbors)
+                for n in neighbors:
                     if not visited[n]:
                         visited[n] = True
                         new_queue.append(n)
@@ -106,17 +107,18 @@ def calculate_hosoya_index(graph:Graph, node:int, dist:int, size:int, seed:int=0
             
         return visited
 
-    def hosoya(graph:Graph, nodes:List[int])->int:
+    def hosoya(graph:Graph, nodes_bool:List[int])->int:
         """Calculates the hosoya index for a graph subset."""
         #get the subgraph
+        nodes = np.arange(graph.number_of_nodes())[nodes_bool]
         subgraph = graph.subgraph(nodes)
-        return nx.maximum_matching(subgraph)
+        return nx.maximal_matching(subgraph)
 
     sub = bfs(graph, node, dist, size, seed)
-    return hosoya(graph, sub)
+    return len(hosoya(graph, sub))
 
 
-def make_data(graphs:List[Graph], dataset:str, feature_config_path:str="src/feature_config.yaml")->Tuple[np.ndarray, np.ndarray]:
+def make_data(graphs:List[Graph], dataset:str, feature_config_path:str="src/feature_config.yaml")->Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Converts a list of graphs into a feature matrix and a label vector.
 
     Args:
@@ -143,31 +145,36 @@ def make_data(graphs:List[Graph], dataset:str, feature_config_path:str="src/feat
 
     """
     features, labels = None, None
+    test_features, labels_ = None, None
 
     match dataset:
 
         case "HOLU":
             #prep 
-            from .libraries.geomConvert.gc import zmat_from_molecule
+            from geomConvert import zmat_from_molecule
             with open(feature_config_path, "r") as f:
                 feature_config = yaml.safe_load(f)
+            print("Using feature config:", feature_config)
             max_node_count = max([graph.number_of_nodes() for graph in graphs])
+            print("Max node count is:", max_node_count)
             
             """ENCODE THE NODE LABELS: ATOM TYPES"""
             #we have the node labels, that must be one-hot encoded: [1..35]
             node_labels = np.zeros((len(graphs), max_node_count, 35))
             for g in range(node_labels.shape[0]):
                 for n, nname in enumerate(graphs[g].nodes(data="node_label")):
-                    node_labels[g, n, nname[1]] = 1
+                    node_labels[g, n, nname[1]-1] = 1
 
             """MAKE ZMATRIX PER GRAPH"""
             #we have 3d vectors for each atom, that must be converted to zmatrix
             #question: how to handle the missing values in the zmatrix at the beginning? set to 0 to not perturb the normalization
             zmatrices = np.zeros((len(graphs), max_node_count, 7))
-            # for g in range(zmatrices.shape[0]):
-            #     zmat = zmat_from_molecule(graphs[g])
-            make_zmatrix = decorate_shape((max_node_count, 7))(zmat_from_molecule)
-            zmatrices = np.array(Parallel(n_jobs=-1)(delayed(make_zmatrix)(graph) for graph in graphs))
+            
+            #fill in the shape if dome molecules are smaller
+            # make_zmatrix = decorate_shape((max_node_count, 7))(zmat_from_molecule)
+            # zmatrices = np.array(Parallel(n_jobs=-1)(delayed(make_zmatrix)(graph) for graph in graphs))
+            for g in range(zmatrices.shape[0]):
+                zmatrices[g][:graphs[g].number_of_nodes()] = zmat_from_molecule(graphs[g])
 
             """MAKE HELPFUL ATOM FEATURES"""
             #further load the helpful features for each atom: electro-negativities and the first 4 ionization energies, and 0th energy(affinity)
@@ -214,19 +221,22 @@ def make_data(graphs:List[Graph], dataset:str, feature_config_path:str="src/feat
             hosoya_indexes = np.zeros((
                 len(graphs), 
                 max_node_count,
-                feature_config["hosoya"]["num_samples"]
+                feature_config["hosoya"]["num_samples"]+1
             ))
             for g in range(hosoya_indexes.shape[0]):
-                #do in parallel for all nodes, and sample 5 times
-                hosoya_indexes[g] = np.array([Parallel(n_jobs=-1)(
-                    delayed(calculate_hosoya_index)(
-                        graph=graphs[g], 
-                        node=n, 
-                        dist=feature_config["hosoya"]["depth"], 
-                        size=feature_config["hosoya"]["size"],
-                        seed=sample
-                    ) for n in range(hosoya_indexes.shape[1])
-                ) for sample in range(feature_config["hosoya"]["num_samples"])]).T
+                for n in range(graphs[g].number_of_nodes()):
+                    for sample in range(feature_config["hosoya"]["num_samples"]):
+                        hosoya_indexes[g, n, sample] = calculate_hosoya_index(
+                            graph=graphs[g], 
+                            node=n, 
+                            dist=feature_config["hosoya"]["depth"], 
+                            size=feature_config["hosoya"]["size"],
+                            seed=sample
+                        )
+            #add the whole graph hosoya index as well
+            for g in range(hosoya_indexes.shape[0]):
+                for n in range(hosoya_indexes.shape[1]):
+                    hosoya_indexes[g, n, -1] = len(nx.maximal_matching(graphs[g]))
 
             """BASICALLY EDGE FEATURES BUT AS NODE FEATURES"""
             #we must incorporate the given edge features somehow as node features
@@ -255,13 +265,19 @@ def make_data(graphs:List[Graph], dataset:str, feature_config_path:str="src/feat
 
             #concatenate all features
             features = np.concatenate([node_labels, zmatrices, help_features, circles, hosoya_indexes, edge_features], axis=2)
+            print("Got Feature with shape:", features.shape)
 
-
-            labels = np.array([graph.graph["label"] for graph in graphs])
+            labels_ = np.array([graph.graph["label"] if graph.graph["label"] is not None else np.nan for graph in graphs])
         case _:
             raise ValueError(f"The given dataset {dataset} is not known, cannot be converted into data.")
 
-    return features, labels
+    #features where labels are none or nan
+    test_features = features[np.isnan(labels_)]
+    features = features[~np.isnan(labels_)]
+    labels = labels_[~np.isnan(labels_)].astype(np.int64)
+    test_feature_idx = np.where(np.isnan(labels_)!=0)[0]
+
+    return features, labels, test_features, test_feature_idx
 
 #somewhere from stack overflow <- basically the keras implementation of early stopping
 class ValidationLossEarlyStopping:

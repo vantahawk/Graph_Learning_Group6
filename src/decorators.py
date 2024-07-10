@@ -166,7 +166,16 @@ def parseargs(__description:str="", __help:bool=False, **parseArgs:Argument)->Ca
 
             for arg, properties in parseArgs.items():
                 #add the args to the argparser parser with all the info from the dict for each argument
-                parser.add_argument(*[f"--{flag}" for flag in properties["flags"]], type=properties["type"], default=properties["default"], nargs=properties["nargs"], help=properties["help"], required=properties["required"], action=WhiteSpaceAction)
+                parser.add_argument(*[f"--{flag}" for flag in properties["flags"]], **{
+                        "type":properties["type"],
+                        "default":properties["default"],
+                        "help":properties["help"],
+                        "required":properties["required"],
+                        "action":WhiteSpaceAction if not properties["type"]==bool else argparse.BooleanOptionalAction
+                    } | ({
+                        "nargs":properties["nargs"]} if not properties["type"]==bool else {}
+                    )
+                )
                 
             parsedArgs = parser.parse_args(args) if len(args)>0 else parser.parse_args()
 
