@@ -24,10 +24,11 @@ scipy
 #smac  # for hpo, install issues?
 #sympy
 #sys
+#timeit
 torch
 #torch-scatter  # has to be installed separately via: ...> pip install torch-scatter -f https://data.pyg.org/whl/torch-2.3.0+${CUDA}.html with '${CUDA}' = 'cpu', 'cu118' or 'cu121' depending on PyTorch installation (usually 'cpu')
 torchvision
 #torchaudio
 tqdm
-typing  # optional?
+#typing  # optional?
 wandb  # for hpo
