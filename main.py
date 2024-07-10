@@ -37,60 +37,35 @@ def main(scatter: list[str], hpo:bool=False) -> None:
     print(f"---\nDevice: {device}\n")  # which device is being used for torch operations
 
     device = th.device(device)  # set device for torch operations
-    
-    if hpo:
-        print("Using Hyperparameter Optimization using Smac. This may take a while.")
-        from src.hpo import hpt
-        param_default = { #these may not be in the configspace, thus we need to add them manually, if they are not they are not used, but still need be specified
-            "weight_decay": 1e-06,
-            "use_virtual_nodes": 1,
-            "n_virtual_layers": 1,
-            "dim_U": 30,
-        }
-        param_default |= hpt(device)
-        scatter_type_list = [param_default["scatter_type"]]
-    else:
-        ### Parameters
-        scatter_type_list = []
-        for scatter_type in scatter:
-            if scatter_type in ['sum', 'mean', 'max']:  # check if parsed [scatter_type] name is included in default list (valid)
-                if scatter_type not in scatter_type_list:
-                    scatter_type_list.append(scatter_type)
-            else:
-                pass
-        
-        param_default:Dict[str, Any] = {
-            "batch_size": 32,
-            "beta1": 0.9028,
-            "beta2": 0.999,
-            "dim_M": 128,
-            "dim_MLP": 128,
-            "dim_U": 128,
-            "dim_between": 64,
-            "dropout_prob": 0.462,
-            "lr":0.001,
-            "lrsched": "cosine",
-            "m_nlin": "relu",
-            "mlp_nlin": "relu",
-            "n_GNN_layers": 5,
-            "n_M_layers": 1,
-            "n_MLP_layers": 3,
-            "n_U_layers": 3,
-            "n_epochs": 200,
-            "n_virtual_layers": 1,
-            "scatter_type": "sum",
-            "u_nlin": "relu",
-            "use_dropout": 1,
-            "use_residual": 1,
-            "use_skip": 0,
-            "use_virtual_nodes": 1,
-            "use_weight_decay": 1,
-            "weight_decay": 0.0000238
-        }
-        if len(scatter_type) == 0:
-            print("Using mean as scatter operation.")
-                
-            scatter_type_list = [param_default["scatter_type"]]
+ 
+    param_default:Dict[str, Any] = {
+        "batch_size": 32,
+        "beta1": 0.9028,
+        "beta2": 0.999,
+        "dim_M": 128,
+        "dim_MLP": 128,
+        "dim_U": 128,
+        "dim_between": 64,
+        "dropout_prob": 0.462,
+        "lr":0.001,
+        "lrsched": "cosine",
+        "m_nlin": "relu",
+        "mlp_nlin": "relu",
+        "n_GNN_layers": 5,
+        "n_M_layers": 3,
+        "n_MLP_layers": 3,
+        "n_U_layers": 3,
+        "n_epochs": 200,
+        "n_virtual_layers": 1,
+        "scatter_type": "sum",
+        "u_nlin": "relu",
+        "use_dropout": 1,
+        "use_residual": 1,
+        "use_skip": 0,
+        "use_virtual_nodes": 1,
+        "use_weight_decay": 1,
+        "weight_decay": 0.0000238
+    }
     
     def get_test_data(data:List[nx.Graph]):
         #test data does not have graph labels
@@ -104,6 +79,10 @@ def main(scatter: list[str], hpo:bool=False) -> None:
     max_number_nodes:int =max([graph.number_of_nodes() for graph in graphs])
     test_graphs = get_test_data(graphs)
     graphs = get_train_data(graphs)
+
+    if hpo:
+        best_config = hpo(graphs, device)
+        param_default = best_config
     
     import wandb
     ### Run Model
@@ -119,7 +98,7 @@ def main(scatter: list[str], hpo:bool=False) -> None:
     n_samples = feature_config["hosoya"]["num_samples"]
     print("Got a maximum of", max_number_nodes, "nodes")
     # construct GNN model of given [scatter_type]
-    model = GNN(scatter_type, 
+    model = GNN("sum", 
         param_default["use_virtual_nodes"], 
         param_default["n_MLP_layers"], 
         param_default["dim_MLP"], 
@@ -157,7 +136,7 @@ def main(scatter: list[str], hpo:bool=False) -> None:
         model.train()  # switch model to training mode
         model.to(device)  # move model to device
         
-        wandb.init(project="gnn_holu", config= param_default | {"scatter_type": scatter_type}, reinit=True)
+        wandb.init(project="gnn_holu", config= param_default | {"scatter_type": "sum"}, reinit=True)
 
         # construct optimizer
         optimizer = Adam(model.parameters(), lr=param_default["lr"], betas=(param_default["beta1"], param_default["beta2"]), weight_decay=param_default["weight_decay"] if param_default["use_weight_decay"] else 0.0)  # TODO try diff. optimizers, parameters to be investigated, tested, chosen...
@@ -225,7 +204,6 @@ def main(scatter: list[str], hpo:bool=False) -> None:
 
                 # evaluate forward fct. to predict graph labels
                 y_pred = model(node_features_col, edge_features_col, edge_idx_col, batch_idx)
-                
 
         wandb.log({"train_loss": np.mean(agg_train_loss), "valid_loss": val_loss})
         wandb.run.summary["final_score"] = val_loss
@@ -238,21 +216,6 @@ def main(scatter: list[str], hpo:bool=False) -> None:
     for i in range(5):
         print(cv_mae[i])
 
-    # print("\n\nParameter Values Used:")  # Recap Parameters
-    # print(f"train batch size: {batch_size}, # of epochs: {n_epochs}")  # training
-    # print(f"# of GNN layers: {n_GNN_layers}, dim. between GNN layers: {dim_between}")  # GNN
-    # print(f"# of M layers: {n_M_layers}, hidden dim. of M: {dim_M}")  # M
-    # print(f"# of U layers: {n_U_layers}", end="")  # U
-    # if n_U_layers > 1:
-    #     print(f", hidden dim. of U: {dim_U}", end="")
-    # print(f"\nuse virtual nodes: {use_virtual_nodes}", end="")  # virtual nodes
-    # if use_virtual_nodes:
-    #     print(f", # of VN-MLP layers: {n_virtual_layers}", end="")
-    # print(f"\n# of MLP layers: {n_MLP_layers}", end="")  # MLP
-    # if n_MLP_layers > 1:
-    #     print(f", hidden dim. of MLP: {dim_MLP}")
-
-    # print("---")
 
     print("\n\nParameter Values Used:") 
     for key in param_default:
