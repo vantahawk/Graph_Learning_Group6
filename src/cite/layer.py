@@ -2,7 +2,7 @@
 # external imports:
 #import numpy as np
 #import torch as th
-from torch import dtype, Tensor, float, float16, float32, float64#, mul
+from torch import dtype, Tensor, float, float16, float32, float64, tensor#, mul
 from torch.nn import Linear, Module, ModuleList
 import torch.nn.functional as F
 from torch_scatter import scatter_sum, scatter_mean, scatter_max
@@ -27,6 +27,7 @@ class GNN_Layer(Module):
                  dtype: dtype = float64 #float16 #float32  #float64  # data type for th.nn.Linear-layers
                  ) -> None:
         super().__init__()
+        #self.device = device
 
         # key attributes:
         self.n_pass = n_pass
@@ -54,24 +55,27 @@ class GNN_Layer(Module):
 
 
     def forward(self, y: Tensor,  # node_attributes-derived input
-                G: Sparse_Graph
+                #G: Sparse_Graph
                 #, edge_idx: Tensor, degree_factors: Tensor  # decomment to use w/ DataLoader & .to(device) instead
-                ) -> tuple[Tensor, Sparse_Graph]:
+                start_nodes: Tensor, end_nodes: Tensor, degree_factors_start: Tensor, degree_factors: Tensor  # for message passing on separate device
+                ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:  #tuple[Tensor, Sparse_Graph]:
         '''forward fct. for single GNN layer, uses scatter-operations w/ start_nodes & end_nodes from edge_idx for message-passing'''
+        """#
         start_nodes, end_nodes = G.edge_idx[0], G.edge_idx[1]
         degree_factors_start = G.degree_factors_start
         degree_factors_end = G.degree_factors
-
+        """#
         for step in range(self.n_pass):  # scatter node attributes via [n_pass] message passes
-            # select node-level input by start nodes (edge_idx[0]):
+            #y = tensor(0., dtype=float64).to(self.device)
 
+            # select node-level input by start nodes (edge_idx[0]):
             #y = y[start_nodes]  ## simple message passing <=> M = identity
             ## message passing w/ degree normalization like in GCN, originally meant for scatter_sum:
             y = y[start_nodes] * degree_factors_start
 
             ## scatter start-node-selected (& norm.ed) input (output from linear M) towards end nodes (edge_idx[1]):
             #y = self.scatter(y, end_nodes, dim=0)  ## simple message passing, scatter_mean <=> row/column-stochastic adj.mat.
-            y = self.scatter(y, end_nodes, dim=0) * degree_factors_end  # message passing w/ degree normalization like in GCN, 2nd part
+            y = self.scatter(y, end_nodes, dim=0) * degree_factors  # message passing w/ degree normalization like in GCN, 2nd part
 
             #y = y.type(float32)  #float # re-cast (error-fix)
 
@@ -79,4 +83,5 @@ class GNN_Layer(Module):
             y = self.U_hidden[layer](y)
             y = self.activation_U(y)
 
-        return self.U_output(y), G  # apply linear output layer of U, pass G along
+        #return self.U_output(y), G
+        return self.U_output(y), start_nodes, end_nodes, degree_factors_start, degree_factors  # apply linear output layer of U, pass G along

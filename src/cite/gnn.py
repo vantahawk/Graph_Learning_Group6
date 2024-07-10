@@ -40,6 +40,7 @@ class GNN(Module):
         super().__init__()
 
         dim_cw = l - 1  # CW-embedding dimension
+        #self.device = device
 
         self.n_GNN_hidden = n_GNN_layers - 1  # number of hidden GNN layers
         self.n_MLP_hidden = n_MLP_layers - 1  # number of hidden MLP layers
@@ -69,20 +70,32 @@ class GNN(Module):
             #self.MLP_output = Linear(dim_between, dim_out, bias=True, dtype=dtype)  ### for emb.-concat. *before* GNN layers
 
 
-    def forward(self, G: Sparse_Graph,
+    def accuracy(self, z_pred: Tensor, z_true: Tensor) -> float:
+        '''returns accuracy between predicted class label logits vs. true class label indices (in range [0,...,len(z_pred)-1]) based on model'''
+        return (z_pred.argmax(-1) == z_true).type(th.float).mean().item()
+        #return (F.softmax(z_pred, dim=-1).argmax(-1) == z_true).type(th.float).mean().item()
+
+
+    def forward(self, #G: Sparse_Graph,
                 #, edge_idx: Tensor, degree_factors: Tensor,  # decomment to use w/ DataLoader & .to(device) instead, adapt fct. block accordingly
+                node_attributes: Tensor,
+                e0: Tensor, e1: Tensor, ds: Tensor, d: Tensor,  # for message passing on separate device
                 X: Tensor,  # (slice of) node2vec-embedding tensor
                 W: Tensor  # (slice of) CW-embedding tensor
                 ) -> Tensor:
         '''forward fct. of overall GNN, takes in [node_attributes] & node2vec-embedding tensor, returns predicted node labels thereof'''
         # primary input:
-        y = G.node_attributes  ### start w/ node_attributes only, concatenate node2vec- & CW-embedding *after* GNN layers
+        #y = G.node_attributes  ### start w/ node_attributes only, concatenate node2vec- & CW-embedding *after* GNN layers
+        y = node_attributes
         #y = cat([G.node_attributes, X, W], -1)  ### concatenate node_attributes w/ node2vec- & CW-embedding *before* GNN layers
+        #y = cat([node_attributes, X, W], -1)
 
-        y, G = self.GNN_input(y, G)  # apply input GNN layer to primary input, pass G along
+        #y, G = self.GNN_input(y, G)  # apply input GNN layer to primary input, pass G along
+        y, e0, e1, ds, d = self.GNN_input(y, e0, e1, ds, d)
 
         for layer in range(self.n_GNN_hidden):  # apply hidden GNN layers, pass G along
-            y, G = self.GNN_hidden[layer](y, G)
+            #y, G = self.GNN_hidden[layer](y, G)
+            y, e0, e1, ds, d = self.GNN_hidden[layer](y, e0, e1, ds, d)
 
         y = cat([y, X, W], -1)  ### secondary input *after* GNN layers: concatenate (primary) output w/ node2vec- & CW-embedding
 
@@ -93,13 +106,6 @@ class GNN(Module):
             y = self.activation_MLP(y)
 
         return self.MLP_output(y)  # apply linear output MLP layer; return predicted, node_label logits as (secondary) output
-
-
-
-def accuracy(z_pred: Tensor, z_true: Tensor) -> float:
-    '''returns accuracy between predicted class label logits vs. true class label indices (in range [0,...,len(z_pred)-1])'''
-    return (z_pred.argmax(-1) == z_true).type(th.float).mean().item()
-    #return (F.softmax(z_pred, dim=-1).argmax(-1) == z_true).type(th.float).mean().item()
 
 
 
@@ -116,26 +122,41 @@ def run_model(G_train: Sparse_Graph, G_val: Sparse_Graph,  # sparse graph rep.s 
                 l, n_pass, scatter_type  # possible default param.s
                 )
     model.to(device)  # move model to device
+    # move embedding tensors to device:
+    X_train, X_val, W_train, W_val = X_train.to(device), X_val.to(device), W_train.to(device), W_val.to(device)
+    # move relevant attributes from sparse rep.s of train & val graph to device:
+    na_train, na_val = G_train.node_attributes.to(device), G_val.node_attributes.to(device)  # node_attributes
+    nl_train = G_train.node_labels.to(device)  # node_labels
+    if G_val.set_node_labels:  # for cross-validation mode
+        nl_val = G_val.node_labels.to(device)
+    na_train, e0_train, e1_train, ds_train, d_train = G_train.node_attributes.to(device), G_train.edge_idx[0].to(device), G_train.edge_idx[1].to(device), G_train.degree_factors_start.to(device), G_train.degree_factors.to(device)  # adjacency data of train graph
+    na_val, e0_val, e1_val, ds_val, d_val = G_val.node_attributes.to(device), G_val.edge_idx[0].to(device), G_val.edge_idx[1].to(device), G_val.degree_factors_start.to(device), G_val.degree_factors.to(device)  # adjacency data of val graph
+
     model.train()  # switch model to training mode
     optimizer = Adam(model.parameters(), lr=lr_gnn)  # construct optimizer
 
     accuracies = []  # collect accuracies over epochs
     for epoch in range(1, n_epochs + 1):  # run training & evaluation phase for [n_epochs]
-        out_train = model(G_train, X_train, W_train)  # forward pass on training graph
+        #out_train = model(G_train, X_train, W_train)  # forward pass on training graph
+        out_train = model(na_train, e0_train, e1_train, ds_train, d_train, X_train, W_train)
         #loss = F.cross_entropy(out_train, G_train.node_labels, reduction='mean')
-        loss = F.cross_entropy(out_train, G_train.node_labels, reduction='sum')  # training loss
+        #loss = F.cross_entropy(out_train, G_train.node_labels, reduction='sum')  # training loss
+        loss = F.cross_entropy(out_train, nl_train, reduction='sum')  # training loss
         loss.backward()  # backward pass
         optimizer.step()  # SGD step
         optimizer.zero_grad()  # set gradients to zero
-        accuracy_train = accuracy(out_train, G_train.node_labels)  # accuracy on train data themselves
+        #accuracy_train = accuracy(out_train, G_train.node_labels)  # accuracy on train data themselves
+        accuracy_train = model.accuracy(out_train, nl_train)  # accuracy on train data themselves
         accuracy_train_round = round(accuracy_train * 100, 4)  # rounded in %
 
         # validation phase:
         model.eval()  # switch model to evaluation mode
         with th.no_grad():
-            out_val = model(G_val, X_val, W_val)  # evaluate forward fct. on validation graph to predict node_labels thereof
+            #out_val = model(G_val, X_val, W_val)  # evaluate forward fct. on validation graph to predict node_labels thereof
+            out_val = model(na_val, e0_val, e1_val, ds_val, d_val, X_val, W_val)
             if G_val.set_node_labels:  # cross-validation mode
-                accuracy_val = accuracy(out_val, G_val.node_labels)  # accuracy on val data
+                #accuracy_val = accuracy(out_val, G_val.node_labels)  # accuracy on val data
+                accuracy_val = model.accuracy(out_val, nl_val)  # accuracy on val data
                 # print progress for loss, training accuracy & validation accuracy (rounded):
                 print(f"epoch {epoch}:\tloss_train: {loss.item():.4f}\t\tacc_train(%): {accuracy_train_round}\t\tacc_val(%): {accuracy_val * 100:.4f}")
                 accuracies.append(accuracy_val)  # add val-accuracy
@@ -167,7 +188,7 @@ if __name__ == "__main__":
     #pred_mode = False
     device = ("cuda" if th.cuda.is_available() else "mps" if th.backends.mps.is_available() else "cpu")  # choose by device priority
     #device = ("cuda" if cuda_is_available() else "mps" if mps_is_available() else "cpu")
-    n_epochs = 20
+    n_epochs = 10
     n_MLP_layers = 6
     dim_MLP = 50 #30 #50 #150
     dim_n2v = 128

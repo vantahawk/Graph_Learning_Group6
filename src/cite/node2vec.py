@@ -16,12 +16,16 @@ from sparse_graph import Sparse_Graph
 
 class Node2Vec(Module):
     '''node2vec embedding as torch module w/ embedding matrix X as parameter & the def. stochastic loss fct. as foward fct.'''
-    def __init__(self, n_nodes: int, dim_n2v: int, m: int) -> None:
+    def __init__(self, n_nodes: int, dim_n2v: int, m: int, device: str) -> None:
         super().__init__()
 
         # main attributes of rt_batch
-        self.m = m  # random walk length
+        self.m = m
+        #self.m = th.tensor(m).to(device)  # random walk length
         self.tree_dim = m + 1
+        #self.tree_dim = self.m + 1
+        #self.sum_loss = th.tensor(0.)  # initialize sum of loss values
+        self.device = device
 
         # initialize node2vec embedding matrix X randomly as parameter:
         self.X = Parameter(th.empty(n_nodes, dim_n2v))  # n_nodes x dim_n2v
@@ -36,15 +40,18 @@ class Node2Vec(Module):
 
     def forward(self, rt_batch: th.Tensor) -> th.Tensor:
         '''forward fct. of node2vec embedding, takes batch matrix (2D) of stacked p_tree data, returns scalar value of mean loss fct. over p_tree batch (simplified, see conversion) as def. in sheet/script 4'''
-        sum_loss = th.tensor(0.)  # initialize sum of loss values
+        sum_loss = th.tensor(0., dtype=th.float64).to(self.device)  # initialize sum of loss values
+        #sum_loss = self.sum_loss
 
         for rt_vec in rt_batch:  # run over p_tree data vectors in batch
             X_start = self.X[rt_vec[0]]  # embedding vec. of start node (X_s)
             # add loss value for each p_tree (see conversion of loss-fct.), rt_vec[1 : self.tree_dim] = p-tree nodes excl. start node:
             sum_loss += (self.m * th.log(th.sum(th.exp(th.matmul(self.X[rt_vec], X_start)), -1))  # denominator-term
                          - th.sum(th.matmul(self.X[rt_vec[1 : self.tree_dim]], X_start), -1))  # numerator-term
-
+        #batch_loss = self.sum_loss / len(rt_batch)
+        #self.sum_loss = 0
         return sum_loss / len(rt_batch)  # return mean loss over batch
+        #return th.tensor(batch_loss)
 
 
 
@@ -54,7 +61,7 @@ def train_node2vec(dataset: RT_Iterable, dim_n2v: int, m: int,  # main parameter
     '''trains [dim_n2v]-dimensional node2vec model on given graph w/ Adam optimizer, using [batch_size] random trees w/ parameters p, m & m_ns'''
     # prepare dataloader (converts np.ndarray rt_batches into th.tensor), model & optimizer
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=0)  # single-process  # TODO adapt to multi-process slu.
-    model = Node2Vec(dataset.n_nodes, dim_n2v, m)  # construct model object
+    model = Node2Vec(dataset.n_nodes, dim_n2v, m, device)  # construct model object
     model.to(device)  # move model to device
     model.train()  # switch model to training mode
     optimizer = Adam(model.parameters(), lr=lr_n2v)  # construct optimizer

@@ -40,7 +40,7 @@ def log_norm(x: Tensor) -> Tensor:
 
 
 def run_evaluation(# param.s w/o given default:
-        graph: Graph | DiGraph | MultiDiGraph, k: int, pred_mode: bool,  # for evaluation
+        graph: Graph | DiGraph | MultiDiGraph, k: int, pred_mode: bool, skip_embeddings: bool, # for evaluation & scheduling (see readme)
         device: str, n_epochs_cv: int, n_epochs_pred: int,  # for running model
         n_MLP_layers: int, dim_MLP: int, dim_n2v: int, n_GNN_layers: int, dim_between: int, dim_U: int, n_U_layers: int,  # for constructing model
         p: float, m: int, m_ns: int, batch_size: int, n_batches: int,  # for p-trees & node2vec
@@ -163,6 +163,7 @@ def run_evaluation(# param.s w/o given default:
 skip_embeddings = False
 if __name__ == "__main__":
     # run model evaluation for CITE:
+    import argparse
     import pickle
     from timeit import default_timer
     #import torch as th
@@ -170,16 +171,33 @@ if __name__ == "__main__":
     from torch.backends.mps import is_available as mps_is_available
     #print_progress = True
     t_start = default_timer()
-    # whether or not to skip embedding computations if their resp. last & current param.s coincide (to save trivial compute):
-    skip_embeddings = True
 
-    # parameters:
-    k = 12
-    pred_mode = True  # True: train on known part of graph & produce prediction on unknown part, False: run CV on known part & print accuracies
+    # configure parser
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-cv', '--cross_val', action='store_false',
+                        help="run cross-validation mode")  # optional bool argument
+    parser.add_argument('-k', '--k', nargs='?', default=12, const=12, type=int,
+                        help="number of splits/folds in cross-validation")  # optional argument
+    parser.add_argument('-epochs', '--n_epochs', nargs='?', default=25, const=50, type=int,
+                        help="number of epochs (per split)")  # optional argument
+    parser.add_argument('-s', '--skip', action='store_true',
+                        help="skip computation for those embeddings whose parameters have not been modified since the last run(s)")  # optional bool argument
+
+    args = parser.parse_args()  # parse from command line or pass string manually w/ .split()
+
+    # parser-parameters:
+    pred_mode = args.cross_val #default: True  # True: train on known part of graph & produce prediction on unknown part, False: run CV on known part & print accuracies
+    k = args.k #default: 12
+    n_epochs_cv = args.n_epochs #25 #20 #30 #40 #50
+    n_epochs_pred = args.n_epochs #25 #20 #30
+    # whether or not to skip embedding computations if their resp. last & current param.s coincide (to save trivial compute):
+    skip_embeddings = args.skip #default: False
+
+    # other parameters:
     #device = ("cuda" if th.cuda.is_available() else "mps" if th.backends.mps.is_available() else "cpu")  # choose by device priority
     device = ("cuda" if cuda_is_available() else "mps" if mps_is_available() else "cpu")
-    n_epochs_cv = 40
-    n_epochs_pred = 25
+    #device = 'cpu'
     n_MLP_layers = 5
     dim_MLP = 200 #30 #50 #100 #200
     dim_n2v = 180 #128 #180 #200 #256 #500
@@ -192,7 +210,8 @@ if __name__ == "__main__":
     m_ns = 19 #5 #7 #9 #10 #19 #20 # for p-trees
     batch_size = 100 #10 #100 #1000  # for node2vec
     n_batches = 10 #10 #100  # for node2vec
-    # param.s w/ given default: # TODO choose whether to optimize or leave as default:
+
+    # param.s w/ default in function argument:
     l = 21 #8 #11 #21  # for CW
     n_pass = 1 #1 #2 #3 #5 #10
     scatter_type = 'sum' #'mean' #'max'
@@ -209,10 +228,10 @@ if __name__ == "__main__":
 
     print("---")
     run_evaluation(# param.s w/o given default:
-        graph, k, pred_mode,  # for evaluation
+        graph, k, pred_mode, skip_embeddings,  # for evaluation & scheduling (see readme)
         device, n_epochs_cv, n_epochs_pred,  # for running model
         n_MLP_layers, dim_MLP, dim_n2v, n_GNN_layers, dim_between, dim_U, n_U_layers,  # for constructing model
         p, m, m_ns, batch_size, n_batches,  # for p-trees & node2vec
-        l, n_pass, scatter_type, lr_gnn, lr_n2v  # param.s w/ given default
+        l, n_pass, scatter_type, lr_gnn, lr_n2v,  # param.s w/ given default
         )
     print(f"Time = {(default_timer() - t_start) / 60} mins\n---")

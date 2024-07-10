@@ -1,8 +1,8 @@
 '''implememtation for sparse representaion of graph (origially intended for CITE)'''
 #import networkx as nx
-from networkx import DiGraph, MultiDiGraph, Graph, adjacency_matrix, is_directed, relabel_nodes
-#import numpy as np
-from numpy import array, sum, zeros
+from networkx import DiGraph, MultiDiGraph, Graph, MultiGraph, adjacency_matrix, is_directed, relabel_nodes
+import numpy as np
+from numpy import array, sum, zeros#, int32
 #import torch as th
 from torch import Tensor, float, float64, long, tensor
 #from torch.utils.data import Dataset
@@ -29,7 +29,7 @@ def remap(edge_nodes: list[int], node_idx: list[int]) -> list[int]:
 
 class Sparse_Graph():  # generic class
     '''implements sparse representation of given, *single* nx.[graph], originally for Graph (like CITE), partially adapted for DiGraph & MulitDiGraph (like LINK) as well, would still need to deal w/ "id" of edges in LINK'''
-    def __init__(self, graph: Graph | DiGraph | MultiDiGraph, set_node_labels: bool, set_edge_labels: bool = False
+    def __init__(self, graph: Graph | MultiGraph | DiGraph | MultiDiGraph, set_node_labels: bool, set_edge_labels: bool = False
                  #, n_node_labels: int = 4  # 4 node label classes in CITE
                  ) -> None:
         #super().__init__()
@@ -63,7 +63,7 @@ class Sparse_Graph():  # generic class
                                           ).type(long)
         else:  # w/ reversed duplicate edges for undirected [graph] like CITE
             self.edge_idx = tensor(array([self.nodes_start + self.nodes_end + self.node_idx_remap,
-                                          self.nodes_end + self.nodes_start + self.node_idx_remap])
+                                          self.nodes_end + self.nodes_start + self.node_idx_remap])#.astype(int32)
                                           #- self.first_node  # subtract to account for 1st node index
                                           ).type(long)
         self.degree_factors_start = self.degree_factors[self.edge_idx[0]]  # slice of degree_factors w.r.t. start nodes in edge_idx
