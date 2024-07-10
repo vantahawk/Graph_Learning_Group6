@@ -85,29 +85,29 @@ To this end you may want to set the flag `-s` in the command line in case you wa
 These current default parameters were chosen by trial-and-error and intuitions from previous exercises.
 
 - schedule:<br>
-k = 12
-n_epochs_cv = 25
-n_epochs_pred = 25
+    - k = 12
+    - n_epochs_cv = 25
+    - n_epochs_pred = 25
 - GNN:<br>
-n_MLP_layers = 5
-dim_MLP = 200
-dim_n2v = 180  (N2V embedding dim.)
-n_GNN_layers = 5
-dim_between = 200 (dim. between GNN layers)
-dim_U = 200
-n_U_layers = 2
-n_pass = 1
-scatter_type = 'sum'  (for message-passing)
-lr_gnn = 0.001 (GNN learning rate)
+    - n_MLP_layers = 5
+    - dim_MLP = 200
+    - dim_n2v = 180  (N2V embedding dim.)
+    - n_GNN_layers = 5
+    - dim_between = 200 (dim. between GNN layers)
+    - dim_U = 200
+    - n_U_layers = 2
+    - n_pass = 1
+    - scatter_type = 'sum'  (for message-passing)
+    - lr_gnn = 0.001 (GNN learning rate)
 - N2V/p-trees:<br>
-p = 0.5
-m = 10
-m_ns = 19
-batch_size = 100
-n_batches = 10
-lr_n2v = 0.01  (N2V learning rate)
+    - p = 0.5
+    - m = 10
+    - m_ns = 19
+    - batch_size = 100
+    - n_batches = 10
+    - lr_n2v = 0.01  (N2V learning rate)
 - CW:<br>
-l = 21
+    - l = 21
 
 
 ## Cross-Validation Results
