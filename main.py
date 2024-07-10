@@ -2,19 +2,19 @@
 
 # external imports
 import argparse
-#import networkx as nx
+import networkx as nx
 import numpy as np
 import pickle
 import os
-#from sklearn.metrics import mean_absolute_error
-#from sympy import Line
-#from sympy import use
+
+from sklearn.model_selection import KFold
+
 import torch as th
 from torch.nn import Linear, Module, ModuleList
 import torch.nn.functional as F
 from torch.optim import Adam#, RMSprop
 from torch.utils.data import DataLoader#, TensorDataset
-from torch_scatter import scatter_sum, scatter_mean, scatter_max
+# from torch_scatter import scatter_sum, scatter_mean, scatter_max
 
 # internal imports
 from src.dataset import Custom_Dataset
@@ -59,29 +59,29 @@ def main(scatter: list[str], hpo:bool=False) -> None:
                 pass
         
         param_default:Dict[str, Any] = {
-            "batch_size": 16,
+            "batch_size": 32,
             "beta1": 0.9028,
             "beta2": 0.999,
-            "dim_M": 29,
-            "dim_MLP": 15,
-            "dim_U": 30,
-            "dim_between": 32,
+            "dim_M": 128,
+            "dim_MLP": 128,
+            "dim_U": 128,
+            "dim_between": 64,
             "dropout_prob": 0.462,
-            "lr":0.00651,
+            "lr":0.001,
             "lrsched": "cosine",
-            "m_nlin": "leaky_relu",
+            "m_nlin": "relu",
             "mlp_nlin": "relu",
             "n_GNN_layers": 5,
             "n_M_layers": 1,
-            "n_MLP_layers": 1,
+            "n_MLP_layers": 3,
             "n_U_layers": 3,
-            "n_epochs": 75,
+            "n_epochs": 200,
             "n_virtual_layers": 1,
             "scatter_type": "sum",
             "u_nlin": "relu",
             "use_dropout": 1,
-            "use_residual": 0,
-            "use_skip": 1,
+            "use_residual": 1,
+            "use_skip": 0,
             "use_virtual_nodes": 1,
             "use_weight_decay": 1,
             "weight_decay": 0.0000238
@@ -91,75 +91,80 @@ def main(scatter: list[str], hpo:bool=False) -> None:
                 
             scatter_type_list = [param_default["scatter_type"]]
     
-    ### Preparation
-    # open ZINC_Train as list of nx.Graphs
-    with open('datasets/ZINC_Train/data.pkl', 'rb') as data:
-        graphs = pickle.load(data)
-    # preprocess ZINC_Train using our [Custom_Dataset] & then collate it into shuffled batch graphs using our [custom_collate] fct.
-    train_loader = DataLoader(Custom_Dataset(graphs), batch_size=param_default["batch_size"], shuffle=True, collate_fn=custom_collate)
+    def get_test_data(data:List[nx.Graph]):
+        #test data does not have graph labels
+        return [graph for graph in data if graph.graph["label"]==None]
 
+    def get_train_data(data:List[nx.Graph]):
+        return [graph for graph in data if graph.graph["label"]!=None]
 
-    with open('datasets/ZINC_Val/data.pkl', 'rb') as data:
-        val_graphs = pickle.load(data)
-    # preprocess ZINC_Train using our [Custom_Dataset] & then collate it into shuffled batch graphs using our [custom_collate] fct.
-    val_loader = DataLoader(Custom_Dataset(val_graphs), batch_size=len(val_graphs), shuffle=True, collate_fn=custom_collate)
-
-    with open('datasets/ZINC_Test/data.pkl', 'rb') as data:
-        test_graphs = pickle.load(data)
-    # preprocess ZINC_Train using our [Custom_Dataset] & then collate it into shuffled batch graphs using our [custom_collate] fct.
-    test_loader = DataLoader(Custom_Dataset(test_graphs), batch_size=len(test_graphs), shuffle=True, collate_fn=custom_collate)
-
-
+    with open("datasets/HOLU/data.pkl", "rb") as data:
+        graphs:List[nx.Graph] = pickle.load(data)
+    max_number_nodes:int =max([graph.number_of_nodes() for graph in graphs])
+    test_graphs = get_test_data(graphs)
+    graphs = get_train_data(graphs)
+    
     import wandb
     ### Run Model
-    MAE_table = []
-    for scatter_type in scatter_type_list:  # run thru list of valid scatter-types
-        print(f"\n\nScatter-Type: {scatter_type}", end="")
+    cv_mae = [{
+        "train":[],
+        "val":[],
+        "test":0.0
+    } for i in range(5)]
 
-        # construct GNN model of given [scatter_type]
-        model = GNN(scatter_type, 
-            param_default["use_virtual_nodes"], 
-            param_default["n_MLP_layers"], 
-            param_default["dim_MLP"], 
-            param_default["n_virtual_layers"], 
-            param_default["n_GNN_layers"], 
-            param_default["dim_between"],
-            param_default["dim_M"], 
-            param_default["dim_U"], 
-            param_default["n_M_layers"], 
-            param_default["n_U_layers"],
-            mlp_nonlin=param_default["mlp_nlin"],
-            m_nonlin=param_default["m_nlin"],
-            u_nonlin=param_default["u_nlin"],
-            skip=param_default["use_skip"],
-            residual=param_default["use_residual"],
-            dropbout_prob=param_default.get("dropout_prob", 0.0)
-        )
+    # construct GNN model of given [scatter_type]
+    model = GNN(scatter_type, 
+        param_default["use_virtual_nodes"], 
+        param_default["n_MLP_layers"], 
+        param_default["dim_MLP"], 
+        param_default["n_virtual_layers"], 
+        param_default["n_GNN_layers"], 
+        param_default["dim_between"],
+        param_default["dim_M"], 
+        param_default["dim_U"], 
+        param_default["n_M_layers"], 
+        param_default["n_U_layers"],
+        mlp_nonlin=param_default["mlp_nlin"],
+        m_nonlin=param_default["m_nlin"],
+        u_nonlin=param_default["u_nlin"],
+        skip=param_default["use_skip"],
+        residual=param_default["use_residual"],
+        dropbout_prob=param_default.get("dropout_prob", 0.0)
+    )
+
+    
+    splitter = KFold(5)
+    test_loader = DataLoader(Custom_Dataset(test_graphs, is_test=True, node_features_size=max_number_nodes), batch_size=len(test_graphs), shuffle=False, collate_fn=custom_collate) #shuffling makes no sense
+
+    for i, (train_graph_idx, val_graph_idx) in enumerate(splitter.split(graphs)):
+
+        train_graphs = [graphs[idx] for idx in train_graph_idx]
+        val_graphs = [graphs[idx] for idx in val_graph_idx]
+
+        train_loader = DataLoader(Custom_Dataset(train_graphs, seed=i, node_features_size=max_number_nodes), batch_size=param_default["batch_size"], shuffle=True, collate_fn=custom_collate)
+        val_loader = DataLoader(Custom_Dataset(val_graphs, node_features_size=max_number_nodes), batch_size=len(val_graphs), shuffle=True, collate_fn=custom_collate)
 
         # if th.cuda.is_available() and th.cuda.device_count() > 1:
         #     model = th.nn.DataParallel(model) # parallelize GNN model for multi-GPU training
         model.train()  # switch model to training mode
         model.to(device)  # move model to device
         
-        wandb.init(project="gnn_zinc", config= param_default | {"scatter_type": scatter_type})
+        wandb.init(project="gnn_holu", config= param_default | {"scatter_type": scatter_type}, reinit=True)
 
         # construct optimizer
         optimizer = Adam(model.parameters(), lr=param_default["lr"], betas=(param_default["beta1"], param_default["beta2"]), weight_decay=param_default["weight_decay"] if param_default["use_weight_decay"] else 0.0)  # TODO try diff. optimizers, parameters to be investigated, tested, chosen...
 
-        warm_up_epoch = param_default["n_epochs"]//10
-        schedulerSlow = th.optim.lr_scheduler.LinearLR(optimizer, start_factor=0.1, end_factor=1.0, total_iters=warm_up_epoch)
         if param_default["lrsched"] == "cosine":
-            hpscheduler = th.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100-warm_up_epoch, eta_min=1e-6)
+            scheduler = th.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=param_default["n_epochs"], eta_min=1e-6)
         else:
-            hpscheduler = th.optim.lr_scheduler.CyclicLR(optimizer, base_lr=param_default["lr"], max_lr=param_default["lr"]*5, step_size_up=2000, mode='triangular2', last_epoch=100)
-            
-        plat_scheduler = th.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5, threshold=0.0001, threshold_mode='rel', cooldown=1, min_lr=0, eps=1e-08, verbose=False)
-        seq_scheduler = th.optim.lr_scheduler.SequentialLR(optimizer, [schedulerSlow, hpscheduler], [warm_up_epoch], param_default["n_epochs"])
+            scheduler = th.optim.lr_scheduler.CyclicLR(optimizer, base_lr=param_default["lr"], max_lr=param_default["lr"]*5, step_size_up=2000, mode='triangular2', last_epoch=param_default["n_epochs"])
 
         agg_train_loss:List[float] = []
         val_loss:float = 0.0
         # run training & evaluation phase for [n_epochs]
         for epoch in range(param_default["n_epochs"]):
+            agg_train_loss = []
+            val_loss = 0.0
             # training phase
             # run thru sparse representation of each training batch graph
             for edge_idx_col, node_features_col, edge_features_col, graph_labels_col, batch_idx in train_loader:
@@ -180,10 +185,13 @@ def main(scatter: list[str], hpo:bool=False) -> None:
                 optimizer.step()
 
                 agg_train_loss.append(train_loss.item())
+            
+            train_loss = np.mean(agg_train_loss)
+            cv_mae[i]["train"].append(train_loss)
 
             val_loss:float = 0.0
             model.eval()  # switch model to evaluation mode
-            for edge_idx_col, node_features_col, edge_features_col, graph_labels_col, batch_idx in val_loader:
+            for edge_idx_col, node_features_col, edge_features_col, graph_labels_col, batch_idx in val_loader:#outputs just one batch with all validation graphs
                 with th.no_grad():
                     # move evaluation batch representation to device
                     edge_idx_col, node_features_col, edge_features_col, graph_labels_col, batch_idx = edge_idx_col.to(device), node_features_col.to(device), edge_features_col.to(device), graph_labels_col.to(device), batch_idx.to(device)
@@ -192,12 +200,15 @@ def main(scatter: list[str], hpo:bool=False) -> None:
                     y_pred = model(node_features_col, edge_features_col, edge_idx_col, batch_idx)
                     val_loss = F.l1_loss(y_pred, graph_labels_col, reduction='mean').item()
 
-            plat_scheduler.step(val_loss)
-            seq_scheduler.step()
+            cv_mae[i]["val"].append(val_loss)
+
+            scheduler.step()
+
+            wandb.log({"train_loss": train_loss, "valid_loss": val_loss, "epoch": epoch})
 
         # evaluation phase
         model.eval()  # switch model to evaluation mode
-        MAE = 0.0
+        y_pred = None
         # run thru sparse representation of each evaluation batch graph
         for edge_idx_col, node_features_col, edge_features_col, graph_labels_col, batch_idx in test_loader:
             with th.no_grad():
@@ -206,16 +217,18 @@ def main(scatter: list[str], hpo:bool=False) -> None:
 
                 # evaluate forward fct. to predict graph labels
                 y_pred = model(node_features_col, edge_features_col, edge_idx_col, batch_idx)
-                MAE = F.l1_loss(y_pred, graph_labels_col, reduction='mean').item()
+                
 
-        MAE_table.append((np.mean(agg_train_loss), val_loss, MAE))
-
-        wandb.log({"train_loss": np.mean(agg_train_loss), "valid_loss": val_loss, "test_loss": MAE})
-
+        wandb.log({"train_loss": np.mean(agg_train_loss), "valid_loss": val_loss})
+        wandb.run.summary["final_score"] = val_loss
+        wandb.run.summary["state"]="finished"
+        wandb.finish(quiet=True)
+        cv_mae[i]["test"] = y_pred
+        
     # Print summary of all final MAEs
-    print(f"\n\n---\n\n-> Mean Absolute Errors (rounded) for the chosen ZINC datasets and scatter operation types:\n\nScatter \u2193", end="")
-    for i in range(len(scatter_type_list)):
-        print(f"\n{scatter_type_list[i]}:\t {MAE_table[i]}", end="")
+    print(f"\n\n---\n\n-> Mean Absolute Errors (rounded) for the HOLU datasets and scatter operation types:\n\nScatter \u2193", end="")
+    for i in range(5):
+        print(cv_mae[i])
 
     # print("\n\nParameter Values Used:")  # Recap Parameters
     # print(f"train batch size: {batch_size}, # of epochs: {n_epochs}")  # training

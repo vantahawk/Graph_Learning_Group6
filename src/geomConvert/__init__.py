@@ -1,0 +1,1 @@
+from .gc import zmat_from_molecule
