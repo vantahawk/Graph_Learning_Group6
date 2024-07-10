@@ -24,6 +24,7 @@ from src.pooling import Sum_Pooling
 from src.virtual_node import Virtual_Node
 
 from typing import List, Dict, Any, Tuple
+import yaml
 
 from src.model import GNN
 
@@ -111,6 +112,11 @@ def main(scatter: list[str], hpo:bool=False) -> None:
         "val":[],
         "test":0.0
     } for i in range(5)]
+    
+    with open("src/feature_config.yaml", "r") as f:
+        feature_config = yaml.safe_load(f)
+    n_circles = feature_config["circle"]["length"]
+    n_samples = feature_config["hosoya"]["num_samples"]
 
     # construct GNN model of given [scatter_type]
     model = GNN(scatter_type, 
@@ -124,6 +130,8 @@ def main(scatter: list[str], hpo:bool=False) -> None:
         param_default["dim_U"], 
         param_default["n_M_layers"], 
         param_default["n_U_layers"],
+        dim_node=35 + 4 + 7 + 6 + max_number_nodes + n_circles + n_samples,#based on maximum node count and config: 35 + 4 + 7 + 6 + Circle_length + (num_samples+1) + max_node_count
+        dim_edge=5,
         mlp_nonlin=param_default["mlp_nlin"],
         m_nonlin=param_default["m_nlin"],
         u_nonlin=param_default["u_nlin"],
