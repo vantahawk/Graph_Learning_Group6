@@ -93,7 +93,6 @@ These current default parameters were chosen by trial-and-error and intuitions f
 - GNN:<br>
     - n_MLP_layers = 5
     - dim_MLP = 200
-    - dim_n2v = 180  (N2V embedding dim.)
     - n_GNN_layers = 5
     - dim_between = 200 (dim. between GNN layers)
     - dim_U = 200
@@ -105,6 +104,7 @@ These current default parameters were chosen by trial-and-error and intuitions f
     - p = 0.5
     - m = 10
     - m_ns = 19
+    - dim_n2v = 180  (N2V embedding dim.)
     - batch_size = 100
     - n_batches = 10
     - lr_n2v = 0.01  (N2V learning rate)
@@ -174,7 +174,4 @@ To run the solution:
 
 ### Note on Exercise Split
 
-Benedict worked on HOLU, David on CITE and Ahmet on LINK. Unfortunately Benedict could not contribute `HOLU-Predictions.pkl` in time for the Moodle upload, since he ran into cluster space limits and a subsequent slowdown, as well as computation errors at the last minute. He will hopefully have forwarded his file by mail shortly after. In any case his solution is on the branch `benedict/sheet5-improved` as well.
-
-
-### Later Improvements
+Benedict worked on HOLU, David on CITE and Ahmet on LINK. Unfortunately Benedict could not contribute `HOLU-Predictions.pkl` in time for the Moodle upload, since he ran into cluster space limits and a subsequent slowdown, as well as computation errors at the last minute. He will hopefully have forwarded his file by mail shortly after.
