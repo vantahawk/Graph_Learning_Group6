@@ -12,6 +12,59 @@ from src.collation import custom_collate
 from src.layer import GNN_Layer, activation_function
 from src.pooling import Sum_Pooling
 from src.virtual_node import Virtual_Node
+import os
+import numpy as np
+
+class EarlyStopping:
+    def __init__(self, patience=7, verbose=False, delta:float=0.0001,mode:str="min"):
+        """
+        Args:
+            patience (int): How long to wait after last time validation loss improved.
+            verbose (bool): If True, prints a message for each validation loss improvement.
+            delta (float): Minimum change in the monitored quantity to qualify as an improvement.
+        """
+        self.patience = patience
+        self.verbose = verbose
+        self.delta = delta
+        self.best_score = None
+        self.early_stop = False
+        self.counter = 0
+        self.best_loss = np.inf if mode == "min" else -np.inf
+
+        self.type = mode
+
+    def __call__(self, val_loss, model):
+        score = -val_loss
+
+        if self.best_score is None:
+            self.best_score = score
+            self.save_checkpoint(val_loss, model)
+        elif (score < self.best_score + self.delta) if self.type =="min" else (score > self.best_score - self.delta):
+            self.counter += 1
+            if self.verbose:
+                print(f'EarlyStopping counter: {self.counter} out of {self.patience}')
+            if self.counter >= self.patience:
+                self.early_stop = True
+        else:
+            self.best_score = score
+            self.save_checkpoint(val_loss, model)
+            self.counter = 0
+        
+        return self
+
+    def save_checkpoint(self, val_loss, model:"GNN"):
+        '''Saves model when validation loss decrease.'''
+        if self.verbose:
+            print(f'Validation loss improved ({self.best_loss:.6f} --> {val_loss:.6f}).  Saving model ...')
+            #if linux save to /tmp/$USER/gnn_tmp/checkpoint.pt for windows save to ./tmp/$USER/gnn_tmp/checkpoint.pt
+        th.save(model.state_dict(), os.path.join("tmp", os.path.expandvars("$USER"),"gnn_tmp", 'checkpoint.pt') if os.name != "nt" else 'checkpoint.pt')
+        self.best_loss = val_loss
+
+    def load_checkpoint(self, model:"GNN"):
+        '''Load model from checkpoint.'''
+        model.load_state_dict(th.load(os.path.join("tmp", os.path.expandvars("$USER"),"gnn_tmp", 'checkpoint.pt')))
+        model.eval()
+
 
 class GNN(Module):
     '''module for the overall GNN, including series of [n_GNN_layers] GNN layers, each w/ optional virtual node, followed by a sum pooling layer & finally a graph-lvl MLP w/ [n_MLP_layers] layers; input dim. is composed of node & edge feature dim., output dim. is 1, matching the scalar, real-valued graph labels'''
@@ -98,4 +151,3 @@ class GNN(Module):
             y = activation_function[self.mlp_nonlin](y) # TODO try different activation fct.s...
 
         return self.MLP_output(y)  # apply linear output MLP layer
-
