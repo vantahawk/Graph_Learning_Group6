@@ -42,7 +42,7 @@ class EarlyStopping:
         elif (score < self.best_score + self.delta) if self.type =="min" else (score > self.best_score - self.delta):
             self.counter += 1
             if self.verbose:
-                print(f'EarlyStopping counter: {self.counter} out of {self.patience}')
+                print(f'EarlyStopping counter: {self.counter} out of {self.patience}. Loss: {val_loss:.6f}, best was {self.best_loss:.6f}')
             if self.counter >= self.patience:
                 self.early_stop = True
         else:

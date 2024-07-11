@@ -118,13 +118,12 @@ def main(scatter: list[str], hpo:bool=False) -> None:
         dropbout_prob=best_config.get("dropout_prob", 0.0) if best_config["use_dropout"] else 0.0
     )
 
-    earlystopper = EarlyStopping(patience=40, verbose=True, delta=10**(-4), mode="min")
-
     splitter = KFold(5)
     test_loader = DataLoader(Custom_Dataset(test_graphs, is_test=True, node_features_size=max_number_nodes, device=device), batch_size=1, shuffle=False, collate_fn=custom_collate) #shuffling makes no sense
 
     for i, (train_graph_idx, val_graph_idx) in enumerate(splitter.split(list(range(len(graphs))))):
-
+        earlystopper = EarlyStopping(patience=20, verbose=True, delta=10**(-4), mode="min") #use 20 patience but only start using it at epoch 150
+        
         train_graphs = [graphs[idx] for idx in train_graph_idx]
         val_graphs = [graphs[idx] for idx in val_graph_idx]
 
@@ -194,7 +193,7 @@ def main(scatter: list[str], hpo:bool=False) -> None:
 
             wandb.log({"train_loss": train_loss, "valid_loss": val_loss, "epoch": epoch})
 
-            if earlystopper(val_loss, model).early_stop:
+            if epoch >= 150 and earlystopper(val_loss, model).early_stop:
                 earlystopper.load_checkpoint(model)
                 
                 break
@@ -207,6 +206,7 @@ def main(scatter: list[str], hpo:bool=False) -> None:
         model.train()
         #new scheduler and lr but not a new optimizer
         sched = th.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=20, eta_min=1e-6)
+        train_loss_agg= []
         for epoch in range(20):
             for edge_idx_col, node_features_col, edge_features_col, graph_labels_col, batch_idx in combined_loader:
                 # set gradients to zero
@@ -216,11 +216,13 @@ def main(scatter: list[str], hpo:bool=False) -> None:
                 #print("y_pred:", y_pred.size)
                 #print("graph_labels_col:", graph_labels_col.size)
                 train_loss = F.l1_loss(y_pred, graph_labels_col, reduction="mean")
-
+                
                 # backward pass and sgd step
                 train_loss.backward()
                 optimizer.step()
-                
+                train_loss_agg.append(train_loss.item())
+
+            wandb.log({"train_loss": np.mean(train_loss_agg)})
             sched.step()
 
         # evaluation phase
