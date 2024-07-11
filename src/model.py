@@ -57,6 +57,9 @@ class EarlyStopping:
         if self.verbose:
             print(f'Validation loss improved ({self.best_loss:.6f} --> {val_loss:.6f}).  Saving model ...')
             #if linux save to /tmp/$USER/gnn_tmp/checkpoint.pt for windows save to ./tmp/$USER/gnn_tmp/checkpoint.pt
+        #make the dir if not already
+        if os.name != "nt":
+            os.makedirs(os.path.join("/tmp", os.path.expandvars("$USER"),"gnn_tmp"), exist_ok=True)
         th.save(model.state_dict(), os.path.join("/tmp", os.path.expandvars("$USER"),"gnn_tmp", 'checkpoint.pt') if os.name != "nt" else 'checkpoint.pt')
         self.best_loss = val_loss
 

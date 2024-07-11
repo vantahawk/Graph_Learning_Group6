@@ -202,7 +202,7 @@ def main(scatter: list[str], hpo:bool=False) -> None:
         #now do 20 epochs on the combined dataset
         combined_graphs = train_graphs + val_graphs
         combined_loader = DataLoader(Custom_Dataset(combined_graphs, seed=i, node_features_size=max_number_nodes, device=device), batch_size=best_config["batch_size"], shuffle=True, collate_fn=custom_collate)
-        for g in optim.param_groups:
+        for g in optimizer.param_groups:
             g["lr"] = best_config["lr"]/10
         model.train()
         #new scheduler and lr but not a new optimizer
