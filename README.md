@@ -25,22 +25,10 @@ BATCH/CMDLine
 ...\group6> python -m pip install -r requirements.txt
 ```
 
-If you don't want to have the hassle of fixing all the bugs in current smac hpo:
-Just comment out the import statement, and the use of the hpt function. It might be that python does not complain, as long as you don't use the -hpo/--hpt option. 
-```python
-from src.hpo import hpt 
-# from src.hpo import hpt
-
-...
-
-        ...  = hpt
-        # --- = hpt
-```
+You further must install torch_scatter in the appropriate version for your system. This can be done by running the following command from the requirements.txt.
 
 
 ## How to run
-
-How to run code for Ex.6:
 
 ```batch
 ::ON WINDOWS cmdline
@@ -54,82 +42,55 @@ or
 .../group6$ python main.py
 ```
 
-...runs the evaluation (Ex.6) on all 3 ZINC datasets ['Train', 'Val', 'Test'] and for the best of the 3 scatter aggregation types ['sum', 'mean', 'max']. To run other aggregations, scatter-types can be chosen by setting the resp. keywords as stated here as optional arguments;  scatter-types after flag `-s`, all separated by spaces. E.g. in order to evaluate ZINC_Val & ZINC_Test using scatter_max & scatter_sum, set:
-
-`python main.py -s max sum`
-
-Training is always done on ZINC_Train. The same info can also be found with the `--help` or `-h` flag like so: `python main.py -h`
-
-Since scatter_sum often yielded the best results, it may suffice to run only that like so: `python main.py -s sum`
-
-The remaining exercises 1-5 are covered by the python files in `src`, where each file covers one exercise:
-
-Ex.1: `dataset.py`, Ex.2: `collation.py`, Ex. 3: `layer.py`, Ex.4: `pooling.py`, Ex.5: `virtual_node.py`
+runs 5-fold CV and saves the best predictions at the end.
 
 
-## Ex. 6
+## Setup
 
-Model in `model.py`, parameters in `main.py` or `hpo.py`, respectively.
+This code is mainly based on Exercise 3. But some features were engineered.
 
-### Attributes & Parameters
+This can all be found in `src/dataset.py`.
 
-We used the optimizer 'Adam' and the l1-loss function. scatter_sum turned out to be the most promising aggregation type.
+### Electronical Features
 
-Parameter Values Used:
- - weight_decay (<class 'float'>): 2.38002958385e-05
- - use_virtual_nodes (<class 'int'>): 1
- - n_virtual_layers (<class 'int'>): 1
- - dim_U (<class 'int'>): 30
- - batch_size (<class 'int'>): 16
- - beta1 (<class 'float'>): 0.9027517490672556
- - beta2 (<class 'numpy.float64'>): 0.999
- - dim_M (<class 'int'>): 29
- - dim_MLP (<class 'int'>): 15
- - dim_between (<class 'int'>): 32
- - lr (<class 'float'>): 0.0065104040069957
- - lrsched (<class 'numpy.str_'>): cosine
- - m_nlin (<class 'numpy.str_'>): leaky_relu
- - mlp_nlin (<class 'numpy.str_'>): relu
- - n_GNN_layers (<class 'int'>): 5
- - n_MLP_layers (<class 'int'>): 1
- - n_M_layers (<class 'int'>): 1
- - n_U_layers (<class 'int'>): 3
- - n_epochs (<class 'int'>): 75
- - scatter_type (<class 'numpy.str_'>): sum
- - u_nlin (<class 'numpy.str_'>): relu
- - use_dropout (<class 'numpy.int64'>): 1
- - use_residual (<class 'numpy.int64'>): 0
- - use_skip (<class 'numpy.int64'>): 1
- - use_weight_decay (<class 'numpy.int64'>): 1
- - dropout_prob (<class 'float'>): 0.4619822213678156
+For more information based on real physical values, we provided the model with eletronical features, per atom.
+These are:
+ - atomic number <- based on the node_label
+ - number of valence electrons
+ - number of bonds
+ - electro negativity 
+ - electro affinity (zero-energy)
+ - ionization energies up to the 4th ionization
 
-### Results for Ex. 6
+### Kernels
+For these some properties can be changed in `src/feature_config.yaml`
+1. hosoya index
+        The hosoya index is often used in chemical graph theory.
+        We therefore gave each node the complete hosoya index of the graph, as a feature.
+        Further 5 samples of a node-centered subgraph hosoya index to capture local structure.
+2. closed walk
+        The closed walk kernel was changed in that each node gets only the number of cycles its part of. This is important for rings in molecules.
 
-Mean Absolute Error (rounded) on the ZINC datasets, for the chosen scatter operation type:
+### Distances
+We used distances as node and edge features. For the latter obviously only the bond lenght, but for the node features all the distances to the other atoms. as this influences stuff like van der waals forces.
 
-Scatter ↓
-sum:	 (0.1166774183511734, 0.30809709429740906, 0.3057083189487457)
+### Other
+The molecule was further translated into a zmatrix based on the given 3d coordinates. This was done to get a better understanding of the molecule and its structure.
+This is based on some tree through the graph, it may help to include multiple zmatrices, but we did not.
+
+For edge features we also incorporated the given bond types.
+
+### Notes
+
+We generally did not normalize the features, except for some small normalization for some, because it must be done globally over all molecules, otherwise the model would not be able to learn the differences between the molecules correctly. We were dumb at this, could have been done better.
+
+## Hyperparameters
+
+Can be seen in the main.py file. We used optuna for optimizing those.
 
 
-| Scatter ↓ , Dataset → | Train      | Val        | Test       |
-| :-------------------- | :--------- | :--------- | :--------- |
-| SUM                   | 0.1166774183511734 | 0.30809709429740906 | 0.3057083189487457 |
+## Results
+Our validation loss is around 0.3, which is relatively good, but other model types may have yielded better ones. But the molecules were quite small, so maybe not.
+For predicting the final test set, the validation set is added to the test set if the early stopping kicks in or we ran through the full epochs. Then another 20 epochs are trained.
 
-## Discussion
-
-We used a BOHB HPO to optimize the hyperparameters, we first had problems achieving low errors, which lay in our bad choice for the dimension-spaces. They were just way to small, when we enlargened this and added more training regularization, error improved drastically.
-
-We still think there might be sth wrong, but are not quite sure.
-
-BUT, You can have a look at this beauty:
-[wandb.ai/export](https://wandb.ai/gerlach/gnn_zinc/reports/Untitled-Report--Vmlldzo4MjQ5MTAw)
-
-## Conclusion
-
-As mentioned, we maybe have yet to find some error of construction somewhere, before we can hope to reach the target MAE.
-
----
-
-### Note on Exercise Split
-
-In part due to difficult time constraints on both Benedict and Ahmet, David ended up providing most of the codebase (`david/sheet3`) this time around. Benedict greatly helped to further debug and refine the code, and ran a hyperparameter optimization over the parameters mentioned in the list above. Ahmet also made himself available for further improvements on the code.
+The saved predictions are from the model that had the best validation score before restart.
