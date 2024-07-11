@@ -1,27 +1,16 @@
 '''GNN module adapted for single node-feature-only graphs (like CITE)'''
 # external imports:
-#import argparse
-#import networkx as nx
-#from networkx import Graph
-#import numpy as np
 from numpy import argmax#, empty
-#from psutil import cpu_count
-#from sklearn.metrics import accuracy_score#, mean_absolute_error
 from pandas import cut
 import torch as th  # TODO replace th. w/ direct imports (maybe)
 from torch import Tensor, cat
 from torch.nn import Linear, Module, ModuleList
 import torch.nn.functional as F
-from torch.optim import Adam#, RMSprop
-#from torch.utils.data import DataLoader, TensorDataset
-#from torch_scatter import scatter_sum, scatter_mean, scatter_max
+from torch.optim import Adam
 
 # internal imports:
 from sparse_graph import Sparse_Graph
-#from collation import custom_collate
 from layer import GNN_Layer
-#from pooling import Sum_Pooling
-#from virtual_node import Virtual_Node
 
 
 
@@ -40,11 +29,9 @@ class GNN(Module):
         super().__init__()
 
         dim_cw = l - 1  # CW-embedding dimension
-        #self.device = device
 
         self.n_GNN_hidden = n_GNN_layers - 1  # number of hidden GNN layers
         self.n_MLP_hidden = n_MLP_layers - 1  # number of hidden MLP layers
-        #self.use_virtual_nodes = use_virtual_nodes  # whether to use (True) or bypass (False) all virtual nodes
         self.activation_MLP = F.relu  # activation fct. for each hidden layer of MLP
 
         self.GNN_input = GNN_Layer(dim_attr, dim_U, dim_between, n_U_layers, n_pass, scatter_type)  ### for embedding-concat. *after* GNN layers
@@ -99,8 +86,6 @@ class GNN(Module):
 
         y = cat([y, X, W], -1)  ### secondary input *after* GNN layers: concatenate (primary) output w/ node2vec- & CW-embedding
 
-        #y = y.type(th.float32)  #float # re-cast (error-fix)
-
         for layer in range(self.n_MLP_hidden):  # apply hidden MLP layers to secondary input
             y = self.MLP_hidden[layer](y)
             y = self.activation_MLP(y)
@@ -139,13 +124,10 @@ def run_model(G_train: Sparse_Graph, G_val: Sparse_Graph,  # sparse graph rep.s 
     for epoch in range(1, n_epochs + 1):  # run training & evaluation phase for [n_epochs]
         #out_train = model(G_train, X_train, W_train)  # forward pass on training graph
         out_train = model(na_train, e0_train, e1_train, ds_train, d_train, X_train, W_train)
-        #loss = F.cross_entropy(out_train, G_train.node_labels, reduction='mean')
-        #loss = F.cross_entropy(out_train, G_train.node_labels, reduction='sum')  # training loss
         loss = F.cross_entropy(out_train, nl_train, reduction='sum')  # training loss
         loss.backward()  # backward pass
         optimizer.step()  # SGD step
         optimizer.zero_grad()  # set gradients to zero
-        #accuracy_train = accuracy(out_train, G_train.node_labels)  # accuracy on train data themselves
         accuracy_train = model.accuracy(out_train, nl_train)  # accuracy on train data themselves
         accuracy_train_round = round(accuracy_train * 100, 4)  # rounded in %
 
@@ -155,7 +137,6 @@ def run_model(G_train: Sparse_Graph, G_val: Sparse_Graph,  # sparse graph rep.s 
             #out_val = model(G_val, X_val, W_val)  # evaluate forward fct. on validation graph to predict node_labels thereof
             out_val = model(na_val, e0_val, e1_val, ds_val, d_val, X_val, W_val)
             if G_val.set_node_labels:  # cross-validation mode
-                #accuracy_val = accuracy(out_val, G_val.node_labels)  # accuracy on val data
                 accuracy_val = model.accuracy(out_val, nl_val)  # accuracy on val data
                 # print progress for loss, training accuracy & validation accuracy (rounded):
                 print(f"epoch {epoch}:\tloss_train: {loss.item():.4f}\t\tacc_train(%): {accuracy_train_round}\t\tacc_val(%): {accuracy_val * 100:.4f}")
@@ -185,7 +166,6 @@ if __name__ == "__main__":
 
     # parameters:
     k = 12
-    #pred_mode = False
     device = ("cuda" if th.cuda.is_available() else "mps" if th.backends.mps.is_available() else "cpu")  # choose by device priority
     #device = ("cuda" if cuda_is_available() else "mps" if mps_is_available() else "cpu")
     n_epochs = 10
@@ -196,24 +176,13 @@ if __name__ == "__main__":
     dim_between = 50 #15 #30 #50
     dim_U = 50 #15 #30 #50
     n_U_layers = 2
-    #p = 0.5  # for p-trees
-    #m = 10  # for p-trees
-    #m_ns = 10  # for p-trees
-    #batch_size = 100  # for node2vec
-    #n_batches = 100  # for node2vec
     # param.s w/ given default:
     l = 8  # for CW
     n_pass = 1 #2 #3
     scatter_type = 'sum' #'mean' #'max'
     lr_gnn = 0.001 #0.01 #0.001
-    #lr_n2v = 0.01 #0.01 #0.001
 
-    #with open('datasets/Citeseer/data.pkl', 'rb') as data:
-    #with open('datasets/Cora/data.pkl', 'rb') as data:
-    #with open('datasets/Facebook/data.pkl', 'rb') as data:  # cannot construct self.node_labels for Facebook, idk why, not needed tho
-    #with open('datasets/PPI/data.pkl', 'rb') as data:
     with open('datasets/CITE/data.pkl', 'rb') as data:
-    #with open('datasets/LINK/data.pkl', 'rb') as data:
         graph = pickle.load(data)#[0]
 
     t_start = default_timer()

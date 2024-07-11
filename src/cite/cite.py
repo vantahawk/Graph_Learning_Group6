@@ -52,7 +52,6 @@ def run_evaluation(# param.s w/o given default:
     G_full = Sparse_Graph(graph, False)  # sparse rep. of full graph
     n_nodes = G_full.n_nodes
     nodes_learn = np.arange(cutoff, n_nodes)  # nodes (indices) of learning subgraph
-    #n_nodes_learn = n_nodes - cutoff
 
     # retrieve last & current embedding param.s:
     params_n2v_last, params_cw_last = [], []
@@ -117,7 +116,6 @@ def run_evaluation(# param.s w/o given default:
         # for CV: construct node slices for [k] train/val subgraphs/splits of train subgraph & X:
         rng = default_rng(seed=None)
         n_nodes_val = (n_nodes - cutoff) // k  # number of nodes in (regular) validation split/subgraph
-        #n_nodes_val = n_nodes // k
         nodes_rest = nodes_learn  # rest nodes: nodes left over from nodes_learn after splitting (an instance of) nodes_val off of it
         splits = []  # split list: collect node split tuples
 
@@ -192,7 +190,7 @@ if __name__ == "__main__":
     n_epochs_cv = args.n_epochs #25 #20 #30 #40 #50
     n_epochs_pred = args.n_epochs #25 #20 #30
     # whether or not to skip embedding computations if their resp. last & current param.s coincide (to save trivial compute):
-    skip_embeddings = args.skip #default: False
+    skip_embeddings = True #args.skip #default: False
 
     # other parameters:
     #device = ("cuda" if th.cuda.is_available() else "mps" if th.backends.mps.is_available() else "cpu")  # choose by device priority
@@ -218,12 +216,7 @@ if __name__ == "__main__":
     lr_gnn = 0.001 #0.01 #0.001
     lr_n2v = 0.01 #0.01 #0.001
 
-    #with open('datasets/Citeseer/data.pkl', 'rb') as data:
-    #with open('datasets/Cora/data.pkl', 'rb') as data:
-    #with open('datasets/Facebook/data.pkl', 'rb') as data:  # cannot construct self.node_labels for Facebook, idk why, not needed tho
-    #with open('datasets/PPI/data.pkl', 'rb') as data:
     with open('datasets/CITE/data.pkl', 'rb') as data:
-    #with open('datasets/LINK/data.pkl', 'rb') as data:
         graph = pickle.load(data)#[0]
 
     print("---")

@@ -1,30 +1,9 @@
 '''implememtation for sparse representaion of graph (origially intended for CITE)'''
-#import networkx as nx
 from networkx import DiGraph, MultiDiGraph, Graph, MultiGraph, adjacency_matrix, is_directed, relabel_nodes
 import numpy as np
-from numpy import array, sum, zeros#, int32
-#import torch as th
-from torch import Tensor, float, float64, long, tensor
-#from torch.utils.data import Dataset
+from numpy import array, sum
+from torch import float64, long, tensor
 
-
-"""
-def one_hot_encoder(label: int, length: int) -> ndarray:
-    '''returns one-hot vector according to given label integer and length'''
-    zero_vector = zeros(length)
-    #if label != None:  # maintain zero vector for empty labels
-    #    zero_vector[label] = 1
-    zero_vector[label] = 1
-    return zero_vector
-"""
-
-"""
-def remap(edge_nodes: list[int], node_idx: list[int]) -> list[int]:
-    '''remaps start & end node lists from edges directly using node_idx'''
-    for i in range(len(edge_nodes)):
-        edge_nodes[i] = node_idx.index(edge_nodes[i])
-    return edge_nodes
-"""
 
 
 class Sparse_Graph():  # generic class
@@ -32,10 +11,8 @@ class Sparse_Graph():  # generic class
     def __init__(self, graph: Graph | MultiGraph | DiGraph | MultiDiGraph, set_node_labels: bool, set_edge_labels: bool = False
                  #, n_node_labels: int = 4  # 4 node label classes in CITE
                  ) -> None:
-        #super().__init__()
 
         self.n_nodes = graph.number_of_nodes()
-        #self.n_edges = graph.number_of_edges()
         self.node_idx = [node[0] for node in graph.nodes(data=True)]  # list of node indices
         # node index remapping:
         self.node_map = {self.node_idx[i] : i for i in range(self.n_nodes)}  # node remapping dictionary w/ elem.s of form (old_idx: new_idx)
@@ -44,7 +21,6 @@ class Sparse_Graph():  # generic class
         # key attributes:
         self.set_node_labels = set_node_labels
         self.nodes = graph.nodes(data=True)
-        #self.node_idx = [node[0] for node in self.nodes]  # list of node indices
         self.edges = graph.edges(data=True)
         #self.first_node = min(self.node_idx)  # account for node count via 1st node index
         self.node_idx_remap = list(range(self.n_nodes))  # remapped node indices = [0,...,n_nodes-1] (order not important here)
@@ -68,9 +44,6 @@ class Sparse_Graph():  # generic class
                                           ).type(long)
         self.degree_factors_start = self.degree_factors[self.edge_idx[0]]  # slice of degree_factors w.r.t. start nodes in edge_idx
         if set_node_labels:
-            # assumes label values start at 0, unused for eval subgraph:
-            #self.node_labels = tensor(array([one_hot_encoder(node[1]['node_label'], n_node_labels)  # one-hot encoded
-            #                                 for node in self.nodes])).type(float)
             self.node_labels = tensor(array([node[1]['node_label']  # *not* one-hot encoded
                                              for node in self.nodes])).type(long) #.type(long) #.type(float)
         self.node_attributes = tensor(array([node[1]['node_attributes']
@@ -85,16 +58,10 @@ if __name__ == "__main__":
     import pickle
     from timeit import default_timer
 
-    #with open('datasets/Citeseer/data.pkl', 'rb') as data:
-    #with open('datasets/Cora/data.pkl', 'rb') as data:
-    #with open('datasets/Facebook/data.pkl', 'rb') as data:  # cannot construct self.node_labels for Facebook, idk why, not needed tho
-    #with open('datasets/PPI/data.pkl', 'rb') as data:
     with open('datasets/CITE/data.pkl', 'rb') as data:
-    #with open('datasets/LINK/data.pkl', 'rb') as data:
-        graph = pickle.load(data)#[0]
+        graph = pickle.load(data)
 
     thresh = 5
     t_start = default_timer()
     G = Sparse_Graph(graph, False)
     print(f"Time = {default_timer() - t_start} secs\n{G.n_nodes}\n{G.degree_factors[: thresh]}\n{G.edge_idx[: thresh]}")
-    #\n{G.node_labels[: cutoff]}  #\n{G.edge_labels[: cutoff]}  #\n{G.nodes[: cutoff]}\n{G.edges[: cutoff]}\n{G.first_node}

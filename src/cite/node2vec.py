@@ -21,37 +21,25 @@ class Node2Vec(Module):
 
         # main attributes of rt_batch
         self.m = m
-        #self.m = th.tensor(m).to(device)  # random walk length
         self.tree_dim = m + 1
-        #self.tree_dim = self.m + 1
-        #self.sum_loss = th.tensor(0.)  # initialize sum of loss values
         self.device = device
 
         # initialize node2vec embedding matrix X randomly as parameter:
         self.X = Parameter(th.empty(n_nodes, dim_n2v))  # n_nodes x dim_n2v
-        # test different initializations:
         kaiming_normal_(self.X)
-        #kaiming_uniform_(self.X)
-        #normal_(self.X, mean=0.0, std=1.0)
-        #uniform_(self.X, a=-1.0, b=1.0)
-        #xavier_normal_(self.X)
-        #xavier_uniform_(self.X)
 
 
     def forward(self, rt_batch: th.Tensor) -> th.Tensor:
         '''forward fct. of node2vec embedding, takes batch matrix (2D) of stacked p_tree data, returns scalar value of mean loss fct. over p_tree batch (simplified, see conversion) as def. in sheet/script 4'''
         sum_loss = th.tensor(0., dtype=th.float64).to(self.device)  # initialize sum of loss values
-        #sum_loss = self.sum_loss
 
         for rt_vec in rt_batch:  # run over p_tree data vectors in batch
             X_start = self.X[rt_vec[0]]  # embedding vec. of start node (X_s)
             # add loss value for each p_tree (see conversion of loss-fct.), rt_vec[1 : self.tree_dim] = p-tree nodes excl. start node:
             sum_loss += (self.m * th.log(th.sum(th.exp(th.matmul(self.X[rt_vec], X_start)), -1))  # denominator-term
                          - th.sum(th.matmul(self.X[rt_vec[1 : self.tree_dim]], X_start), -1))  # numerator-term
-        #batch_loss = self.sum_loss / len(rt_batch)
-        #self.sum_loss = 0
+
         return sum_loss / len(rt_batch)  # return mean loss over batch
-        #return th.tensor(batch_loss)
 
 
 
@@ -80,9 +68,6 @@ def train_node2vec(dataset: RT_Iterable, dim_n2v: int, m: int,  # main parameter
     print("\n")
     model.eval()  # switch model to evaluation mode (optional?)
     return model.get_parameter('X').detach().type(th.float64)  # return embedding matrix X as th.tensor
-    #return model.get_parameter('X').detach().numpy()  # return embedding matrix X as np.ndarray
-    #return model.get_parameter('X').detach().to('cpu').numpy()  # move back to CPU first?
-    #return model.get_parameter('X').numpy(force=True)  # forced version
 
 
 
@@ -103,13 +88,8 @@ if __name__ == "__main__":
     m_ns = 10 #10 #20 #50 #100
     set_node_labels = False
 
-    #with open('datasets/Citeseer/data.pkl', 'rb') as data:
-    #with open('datasets/Cora/data.pkl', 'rb') as data:
-    #with open('datasets/Facebook/data.pkl', 'rb') as data:  # cannot construct self.node_labels for Facebook, idk why, not needed tho
-    #with open('datasets/PPI/data.pkl', 'rb') as data:
     with open('datasets/CITE/data.pkl', 'rb') as data:
-    #with open('datasets/LINK/data.pkl', 'rb') as data:
-        graph = pickle.load(data)#[0]
+        graph = pickle.load(data)
 
     t_start = default_timer()
     dataset = RT_Iterable(Sparse_Graph(graph, set_node_labels), p, m, m_ns, batch_size)  # custom iterable dataset instance

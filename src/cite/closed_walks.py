@@ -42,13 +42,12 @@ def CW_kernel(G: Sparse_Graph, l: int = 8,
 
     #print(f"EVec.dtype = {EVec.dtype}, EVal_powers.dtype = {EVal_powers.dtype}")
     print("Compute CW embedding") if print_progress else print(end="")
-    #W = dot((EVec * EVec.conj()), EVal_powers)  # CW embedding matrix W, see [pdf-file] for derivation  # TODO add pdf-file(name)
+    #W = dot((EVec * EVec.conj()), EVal_powers)  # CW embedding matrix W
     W = dot(EVec ** 2, EVal_powers)  # in case EVec is real-valued (true for CITE)
     """#
     ##direct mat.mult. method:
-    #adj_diag_powers = csr_array((G.n_nodes, dim_cw))  # csr-array w/ each column j as flattened diagonal of adj_mat**(j+2)
     print("Compute CW embedding directly") if print_progress else print(end="")
-    adj_diag_powers = empty((G.n_nodes, dim_cw))  # np.array
+    adj_diag_powers = empty((G.n_nodes, dim_cw))  # np.array w/ each column j as flattened diagonal of adj_mat**(j+2)
     adj_mat = G.adj_mat.astype(float64)
     adj_mat_power = adj_mat
     for j in range(dim_cw):  # fill diag_powers up
@@ -69,15 +68,10 @@ if __name__ == "__main__":
     from timeit import default_timer
     print_progress = True
 
-    #with open('datasets/Citeseer/data.pkl', 'rb') as data:
-    #with open('datasets/Cora/data.pkl', 'rb') as data:
-    #with open('datasets/Facebook/data.pkl', 'rb') as data:  # cannot construct self.node_labels for Facebook, idk why, not needed tho
-    #with open('datasets/PPI/data.pkl', 'rb') as data:
     with open('datasets/CITE/data.pkl', 'rb') as data:
-    #with open('datasets/LINK/data.pkl', 'rb') as data:
-        graph = pickle.load(data)#[0]
+        graph = pickle.load(data)
 
     l = 21
     t_start = default_timer()
     W = CW_kernel(Sparse_Graph(graph, False), l)
-    print(f"l = {l}, Time = {(default_timer() - t_start) / 60} mins\n{W[: 5]}\nshape = {W.shape}")  #, dtype = {W.dtype}
+    print(f"l = {l}, Time = {(default_timer() - t_start) / 60} mins\n{W[: 5]}\nshape = {W.shape}")

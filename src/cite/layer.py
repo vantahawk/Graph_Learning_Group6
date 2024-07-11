@@ -1,14 +1,12 @@
 '''GNN layer adapted for node-feature-only graphs (like CITE)'''
 # external imports:
-#import numpy as np
-#import torch as th
-from torch import dtype, Tensor, float, float16, float32, float64, tensor#, mul
+from torch import dtype, Tensor, float, float16, float32, float64, tensor
 from torch.nn import Linear, Module, ModuleList
 import torch.nn.functional as F
 from torch_scatter import scatter_sum, scatter_mean, scatter_max
 
 # internal imports:
-from sparse_graph import Sparse_Graph
+#from sparse_graph import Sparse_Graph
 
 
 
@@ -27,7 +25,6 @@ class GNN_Layer(Module):
                  dtype: dtype = float64 #float16 #float32  #float64  # data type for th.nn.Linear-layers
                  ) -> None:
         super().__init__()
-        #self.device = device
 
         # key attributes:
         self.n_pass = n_pass
@@ -66,7 +63,6 @@ class GNN_Layer(Module):
         degree_factors_end = G.degree_factors
         """#
         for step in range(self.n_pass):  # scatter node attributes via [n_pass] message passes
-            #y = tensor(0., dtype=float64).to(self.device)
 
             # select node-level input by start nodes (edge_idx[0]):
             #y = y[start_nodes]  ## simple message passing <=> M = identity

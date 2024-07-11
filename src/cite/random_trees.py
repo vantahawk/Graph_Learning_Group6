@@ -1,6 +1,5 @@
 '''implementation of iterable dataset for streaming random trees'''
 # external imports:
-#from networkx import Graph, adjacency_matrix, number_of_edges, number_of_nodes
 import numpy as np  # TODO replace np. w/ direct imports (maybe)
 from numpy.random import default_rng
 from scipy.sparse import eye_array
@@ -8,9 +7,6 @@ from torch.utils.data import IterableDataset#, get_worker_info
 from typing import Iterator
 
 # internal imports:
-#from node2vec import Node2Vec, train_node2vec
-#from random_walks import RW_Iterable
-#from node_class import node_class
 from sparse_graph import Sparse_Graph
 
 
@@ -37,10 +33,8 @@ class RT_Iterable(IterableDataset):  # TODO parallelize/find multi-process slu.
     def rt_batch(self) -> list[np.ndarray]:
         '''returns batch (list) of p-tree data, each including: random start node, followed by m nodes of random p-tree, followed by m_ns negative samples, concatenated into 1D-np.ndarray'''
         batch = np.empty((self.batch_size, self.tree_dim + self.m_ns), dtype=np.int64)  # ...in batch np.ndarray  #dtype=np.int32
-        #batch = []  # collect trees in batch list
 
         tree = 0  # counts (index of) trees in current batch
-        #for tree in range(self.batch_size):
         while tree < self.batch_size:  # while tree batch not full yet
             print(f"tree {tree}: ", end="") if print_progress else print(end="")
             start = self.rng.choice(self.n_nodes, size=1, replace=False, p=None, axis=0, shuffle=False)  # uniformly sampled start node, np.int64
@@ -85,13 +79,11 @@ class RT_Iterable(IterableDataset):  # TODO parallelize/find multi-process slu.
             # [m_ns] negative samples (np.ndarray) uniformly drawn from remaining nodes w/o repetition:
             neg_samples = self.rng.choice(rest_nodes, size=self.m_ns, replace=False, p=None, axis=0, shuffle=False)
             batch[tree] = np.concatenate([p_tree, neg_samples], axis=-1)  # concatenate tree & negative samples into p-tree data vector, add to batch
-            #batch.append(np.concatenate([p_tree, neg_samples], axis=-1))
             tree += 1  # update tree index
             print("done") if print_progress else print(end="")
 
         print("\n") if print_progress else print(end="")
         return list(batch)
-        #return batch
 
 
     def __iter__(self) -> Iterator[np.ndarray]:
@@ -109,29 +101,20 @@ if __name__ == "__main__":
     from torch.utils.data import DataLoader, get_worker_info
     print_progress = True
 
-    #device = ("cuda" if th.cuda.is_available() else "mps" if th.backends.mps.is_available() else "cpu")  # choose by device priority
-    #n_workers = 2 #cpu_count(logical=True)
     batch_size =  5 #3 * n_workers
     p = 0.5 #0.1 #0.2 #0.5 #0.8 #1.0
     m = 10 #10 #20 #50 #100
     m_ns = 10 #10 #20 #50 #100
     set_node_labels = False
 
-    #with open('datasets/Citeseer/data.pkl', 'rb') as data:
-    #with open('datasets/Cora/data.pkl', 'rb') as data:
-    #with open('datasets/Facebook/data.pkl', 'rb') as data:  # cannot construct self.node_labels for Facebook, idk why, not needed tho
-    #with open('datasets/PPI/data.pkl', 'rb') as data:
     with open('datasets/CITE/data.pkl', 'rb') as data:
-    #with open('datasets/LINK/data.pkl', 'rb') as data:
-        graph = pickle.load(data)#[0]
+        graph = pickle.load(data)
 
     t_start = default_timer()
     dataset = RT_Iterable(Sparse_Graph(graph, set_node_labels), p, m, m_ns, batch_size)  # custom iterable dataset instance
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=0)  # turns random walk batches into th.tensors, single-process
 
-    # multi-process part removed
-    #dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=n_workers, worker_init_fn=worker_split)  # issue w/ worker_split(), produces failed subprocesses
-    #dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=n_workers)  # works but returns one batch for each subprocess? also duplicates depending on implementation (expected but not efficiently fixed yet)
+    # multi-process part removed...
 
     print(f"Time = {(default_timer() - t_start) / 60} mins")
     for run in range(3):
