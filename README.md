@@ -28,6 +28,8 @@ BATCH/CMDLine
 
 ## HOLU
 
+The entry point for HOLU is `...\group6> python main.py`. The other files required for it lie in `src`, `src/geomConvert` and `helpful_extra_features`.
+
 ---
 
 ## CITE

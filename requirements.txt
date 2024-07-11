@@ -18,7 +18,8 @@ pandas
 #pickle
 protobuf
 psutil
-pytorch-lightning
+pytorch
+pyyaml
 scikit-learn
 scipy
 #smac  # for hpo, install issues?

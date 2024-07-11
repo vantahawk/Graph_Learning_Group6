@@ -1,0 +1,8 @@
+circle: 
+  length: 10
+  cut_duplicates: True
+
+hosoya:
+  num_samples: 5
+  size: 10
+  depth: 3
