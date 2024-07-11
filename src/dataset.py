@@ -267,7 +267,7 @@ def make_edge_features(graphs:list[nx.Graph])->list[np.ndarray]:
 
 class Custom_Dataset(Dataset):
     '''implements custom [Dataset] class for given dataset (list of nx.graphs)'''
-    def __init__(self, graphs: list[nx.Graph], is_test:bool=False, size:int|None = None, node_features_size=None, seed:int=0) -> None:
+    def __init__(self, graphs: list[nx.Graph], is_test:bool=False, size:int|None = None, node_features_size=None, seed:int=0, device=None) -> None:
         """Make the custom graphs dataset that can be collated
 
         Args:
@@ -276,9 +276,13 @@ class Custom_Dataset(Dataset):
         - size (int): The number of graphs to use, if None, use all
         - node_features_size: A shape that the node features per node must match. This likely means its an integer
         - seed (int): The seed to use for shuffling the graphs
+        - device: The device to use for the tensors
         """
         super().__init__()
-
+        if device == None:
+            device = th.device('cpu')
+        else:
+            print("got device", device)
         # optional attributes
         self.graphs = graphs
         random.seed(seed)
@@ -295,17 +299,22 @@ class Custom_Dataset(Dataset):
         self.nodes_end = [[edge[1] for edge in graph.edges(data=True)]
                           for graph in graphs]  # end nodes all edges in graph
         self.edge_idx = [th.tensor(np.array([self.nodes_start[index] + self.nodes_end[index],
-                                             self.nodes_end[index] + self.nodes_start[index]]), dtype=th.long)
+                                             self.nodes_end[index] + self.nodes_start[index]]), dtype=th.long, device=device)
                          for index in range(self.length)]  # directed edge index list, i.e. w/ reversed duplicate
 
         #because we include distances in the node feature, this dimension is fixed to the maximum node count
         self.node_features = make_node_features(graphs, node_features_size) #for graph in graphs for node in graph.nodes()
-        self.node_features = [th.tensor(self.node_features[g]) for g,_ in enumerate(graphs)]
+        self.node_features = [th.tensor(self.node_features[g], device=device) for g,_ in enumerate(graphs)]
 
         self.edge_features = make_edge_features(graphs) #for graph in graphs
-        self.edge_features = [th.tensor(self.edge_features[g]) for g,_ in enumerate(graphs)]
+        self.edge_features = [th.tensor(self.edge_features[g], device=device) for g,_ in enumerate(graphs)]
         
-        self.graph_labels = [th.tensor(np.array(graph.graph['label'] if not is_test else -1), dtype=th.float) for graph in graphs]  # scalar, real-valued
+        self.graph_labels = [th.tensor(np.array(graph.graph['label'] if not is_test else -1), dtype=th.float, device=device) for graph in graphs]  # scalar, real-valued
+
+        #put all to the selected device
+        for feature in (self.node_features, self.edge_features, self.graph_labels):
+            for tens in feature:
+                tens.to(device)
 
 
     def __getitem__(self, index: int) -> tuple[th.Tensor, th.Tensor, th.Tensor, th.Tensor]:
