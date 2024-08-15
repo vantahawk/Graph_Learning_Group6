@@ -5,13 +5,10 @@ protobuf
 psutil
 torch
 pytorch-lightning
-# pygmtools <- was considered in computing the graph matching
-# pymatching
 matplotlib
 networkx
 numba
 numpy
-optuna
 scikit-learn
 scipy
 smac
